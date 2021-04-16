@@ -13,38 +13,47 @@ pub enum Command {
     Seq(Vec<Command>)
 }
 
-#[derive(Debug,Clone)]
-pub struct Request {
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct Frame {
     pub commands:Vec<Command>
 }
 
-impl From<Command> for Request {
-    fn from(command:Command)->Self {
-	Self{ commands:vec![command] }
-    }
-}
-
-impl Request {
+impl Frame {
     pub fn new()->Self {
 	Self{ commands:Vec::new() }
     }
 
-    pub fn push(&mut self,cmd:Command) {
-	self.commands.push(cmd);
+    pub fn color(&mut self,r:f64,g:f64,b:f64) {
+	self.commands.push(Command::Color([r,g,b]));
     }
 
-    pub fn clear(&mut self) {
-	self.commands.clear();
+    pub fn line(&mut self,x1:f64,y1:f64,x2:f64,y2:f64) {
+	self.commands.push(Command::Lines(vec![(x1,y1),(x2,y2)]));
+    }
+
+    pub fn text(&mut self,p:(f64,f64),s:f64,txt:&str) {
+	self.commands.push(Command::Text(p,s,txt.to_string()));
+    }
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct Request {
+    pub frames:Vec<Frame>
+}
+
+impl Request {
+    pub fn new()->Self {
+	Self{ frames:Vec::new() }
     }
 
     pub fn write<W:Write>(&self,w:&mut W)->Result<(),Box<dyn Error>> {
-	self.commands.serialize(&mut rmp_serde::Serializer::new(w))?;
+	self.serialize(&mut rmp_serde::Serializer::new(w))?;
 	Ok(())
     }
 
     pub fn read<R:Read>(r:&mut R)->Result<Self,Box<dyn Error>> {
-	let commands : Vec<Command> = rmp_serde::decode::from_read(r)?;
-	Ok(Self{ commands })
+	let this : Self = rmp_serde::decode::from_read(r)?;
+	Ok(this)
     }
 
     pub fn save_to_file<P:AsRef<Path>>(&self,path:P)->Result<(),Box<dyn Error>> {
@@ -59,7 +68,17 @@ impl Request {
 	Self::read(&mut buf)
     }
 
-    pub fn get(self)->Vec<Command> {
-	self.commands
+    pub fn get_frame(&self,k:isize)->Option<&Frame> {
+	let m = self.frames.len();
+	if m == 0 {
+	    None
+	} else {
+	    let i = k.rem_euclid(m as isize) as usize;
+	    Some(&self.frames[i])
+	}
+    }
+
+    pub fn push_frame(&mut self,frame:Frame) {
+	self.frames.push(frame);
     }
 }
