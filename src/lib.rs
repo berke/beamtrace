@@ -9,6 +9,7 @@ pub enum Command {
     Color([f64;3]),
     Points(Vec<(f64,f64)>),
     Lines(Vec<(f64,f64)>),
+    Text((f64,f64),f64,String),
     Seq(Vec<Command>)
 }
 
