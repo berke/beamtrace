@@ -17,6 +17,12 @@ pub struct Request {
     pub commands:Vec<Command>
 }
 
+impl From<Command> for Request {
+    fn from(command:Command)->Self {
+	Self{ commands:vec![command] }
+    }
+}
+
 impl Request {
     pub fn new()->Self {
 	Self{ commands:Vec::new() }
@@ -50,5 +56,9 @@ impl Request {
 	let fd = File::open(path)?;
 	let mut buf = BufReader::new(fd);
 	Self::read(&mut buf)
+    }
+
+    pub fn get(self)->Vec<Command> {
+	self.commands
     }
 }
