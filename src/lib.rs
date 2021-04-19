@@ -14,36 +14,69 @@ pub enum Command {
 }
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
-pub struct Frame {
+pub struct Plot {
     pub commands:Vec<Command>
 }
 
-impl Frame {
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct Page {
+    pub plots:Vec<Plot>
+}
+
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct Book {
+    pub pages:Vec<Page>
+}
+
+impl Page {
+    pub fn new()->Self {
+	Self{ plots:Vec::new() }
+    }
+
+    pub fn len(&self)->usize {
+	self.plots.len()
+    }
+
+    pub fn plot(&mut self,pl:Plot) {
+	self.plots.push(pl);
+    }
+
+    pub fn get_plot(&self,k:isize)->Option<&Plot> {
+	let m = self.len();
+	if m == 0 {
+	    None
+	} else {
+	    let i = k.rem_euclid(m as isize) as usize;
+	    Some(&self.plots[i])
+	}
+    }
+}
+
+impl Plot {
     pub fn new()->Self {
 	Self{ commands:Vec::new() }
     }
 
     pub fn color(&mut self,r:f64,g:f64,b:f64) {
-	self.commands.push(Command::Color([r,g,b]));
+	self.command(Command::Color([r,g,b]));
     }
 
     pub fn line(&mut self,x1:f64,y1:f64,x2:f64,y2:f64) {
-	self.commands.push(Command::Lines(vec![(x1,y1),(x2,y2)]));
+	self.command(Command::Lines(vec![(x1,y1),(x2,y2)]));
     }
 
     pub fn text(&mut self,p:(f64,f64),s:f64,txt:&str) {
-	self.commands.push(Command::Text(p,s,txt.to_string()));
+	self.command(Command::Text(p,s,txt.to_string()));
+    }
+
+    pub fn command(&mut self,cmd:Command) {
+	self.commands.push(cmd);
     }
 }
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
-pub struct Request {
-    pub frames:Vec<Frame>
-}
-
-impl Request {
+impl Book {
     pub fn new()->Self {
-	Self{ frames:Vec::new() }
+	Self{ pages:Vec::new() }
     }
 
     pub fn write<W:Write>(&self,w:&mut W)->Result<(),Box<dyn Error>> {
@@ -68,17 +101,17 @@ impl Request {
 	Self::read(&mut buf)
     }
 
-    pub fn get_frame(&self,k:isize)->Option<&Frame> {
-	let m = self.frames.len();
+    pub fn get_page(&self,k:isize)->Option<&Page> {
+	let m = self.pages.len();
 	if m == 0 {
 	    None
 	} else {
 	    let i = k.rem_euclid(m as isize) as usize;
-	    Some(&self.frames[i])
+	    Some(&self.pages[i])
 	}
     }
 
-    pub fn push_frame(&mut self,frame:Frame) {
-	self.frames.push(frame);
+    pub fn page(&mut self,page:Page) {
+	self.pages.push(page);
     }
 }
