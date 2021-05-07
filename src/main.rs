@@ -1,6 +1,7 @@
 mod charset0;
 
 use beamtrace::{point,Point,Book,Page,Plot,Command};
+use charset0::Font;
 
 const W : f64 = 7.0;
 const D : f64 = 4.0;
@@ -27,39 +28,35 @@ fn rect(pl:&mut Plot,p0:Point,p1:Point) {
     pl.lines(vec![p0,p0.with_x(p1),p1,p1.with_x(p0),p0]);
 }
 
-fn glyph(plot:&mut Plot,mut p0:Point,s:f64,c:char) {
+fn glyph(font:&Font,plot:&mut Plot,mut p0:Point,s:f64,c:char) {
     p0 += (0.0,s*H);
     let pp0 = p0;
 
     let mut line = Vec::new();
 
-    if c.is_ascii() {
-	let k : u32 = c.into();
-	if k < 128 {
-	    let w = charset0::FONT0[k as usize];
-	    let m = w.len();
-	    let mut p = p0;
-	    for &(pen,jj,ii) in w.iter() {
-		let pp = pp0 + (s*jj as f64,-s*ii as f64);
-		if pen {
-		    if line.len() == 0 {
-			line.push(p);
-		    }
-		    line.push(pp);
-		} else {
-		    if line.len() > 0 {
-			let mut new_line = Vec::new();
-			new_line.append(&mut line);
-			plot.lines(new_line);
-		    }
+    if let Some(w) = font.get(c) {
+	let m = w.len();
+	let mut p = p0;
+	for &(pen,jj,ii) in w.iter() {
+	    let pp = pp0 + (s*jj as f64,-s*ii as f64);
+	    if pen {
+		if line.len() == 0 {
+		    line.push(p);
 		}
-		p = pp;
+		line.push(pp);
+	    } else {
+		if line.len() > 0 {
+		    let mut new_line = Vec::new();
+		    new_line.append(&mut line);
+		    plot.lines(new_line);
+		}
 	    }
-	    if line.len() > 0 {
-		let mut new_line = Vec::new();
-		new_line.append(&mut line);
-		plot.lines(new_line);
-	    }
+	    p = pp;
+	}
+	if line.len() > 0 {
+	    let mut new_line = Vec::new();
+	    new_line.append(&mut line);
+	    plot.lines(new_line);
 	}
     }
 }
@@ -72,35 +69,36 @@ pub enum Text<'a> {
     Seq(Vec<Text<'a>>)
 }
 
-fn span(pl:&mut Plot,mut p0:Point,s:f64,u:&str)->Point {
+fn span(font:&Font,pl:&mut Plot,mut p0:Point,s:f64,u:&str)->Point {
     for c in u.chars() {
+	println!("CHAR {}",c);
 	pl.rgb12(0xf00);
 	rect(pl,p0,p0+(s*W,s*(H-D)));
 	rect(pl,p0+(0.0,s*(H-D)),p0+(s*W,s*H));
 	pl.rgb12(0xfff);
-	glyph(pl,p0,s,c);
+	glyph(font,pl,p0,s,c);
 	p0 += (s*W,0.0);
     }
     p0+(0.0,s*H)
 }
 
 
-fn text(pl:&mut Plot,mut p0:Point,s:f64,t:&Text)->Point {
+fn text(font:&Font,pl:&mut Plot,mut p0:Point,s:f64,t:&Text)->Point {
     let mut p1 = p0;
     match t {
-	Text::Span(u) => p1 = p0.with_x(span(pl,p0,s,u)),
+	Text::Span(u) => p1 = p0.with_x(span(font,pl,p0,s,u)),
 	Text::Seq(v) => {
 	    for t in v.iter() {
-		p1 = text(pl,p0,s,t);
+		p1 = text(font,pl,p0,s,t);
 		p0 = p0.with_x(p1);
 	    }
 	},
 	Text::Sup(t) => {
-	    p1 = text(pl,p0 + (0.0,-H/3.0),2.0*s/3.0,t);
+	    p1 = text(font,pl,p0 + (0.0,-H/3.0),2.0*s/3.0,t);
 	    p0 = p0.with_x(p1);
 	},
 	Text::Sub(t) => {
-	    p1 = text(pl,p0 + (0.0,H/3.0),2.0*s/3.0,t);
+	    p1 = text(font,pl,p0 + (0.0,H/3.0),2.0*s/3.0,t);
 	    p0 = p0.with_x(p1);
 	}
     }
@@ -134,14 +132,19 @@ fn text(pl:&mut Plot,mut p0:Point,s:f64,t:&Text)->Point {
 // }
 
 fn main() {
+    let mut font = Font::new();
+    font.add_ascii();
+    font.add_math();
     let mut bk = Book::new();
     let mut pg = Page::new();
     let mut pl = Plot::new();
-    text(&mut pl,point(0.0,0.0),1.0,
-	 &Text::Seq(vec![Text::Span("HELLO"),
+    text(&font,
+	 &mut pl,point(0.0,0.0),1.0,
+	 &Text::Seq(vec![Text::Span("αβγδχηζμνλσ 2πr"),
+			 Text::Sup(Box::new(Text::Span("2"))),
 			 Text::Sub(Box::new(
 				 Text::Seq(vec![
-				     Text::Span("2"),
+				     Text::Span("β"),
 				     Text::Sup(Box::new(Text::Span("128")))]
 				 ))),
 			 Text::Span("WORLD")]));
