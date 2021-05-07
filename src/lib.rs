@@ -1,15 +1,26 @@
-use serde::{Serialize,Deserialize};
+use std::ops::{Add,AddAssign,Mul};
 use std::path::Path;
 use std::error::Error;
 use std::fs::File;
 use std::io::{Read,Write,BufWriter,BufReader};
+use serde::{Serialize,Deserialize};
+
+#[derive(Debug,Copy,Clone,Serialize,Deserialize)]
+pub struct Point {
+    pub x:f64,
+    pub y:f64
+}
+
+pub fn point(x:f64,y:f64)->Point {
+    Point{ x, y }
+}
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum Command {
     Color([f64;3]),
-    Points(Vec<(f64,f64)>),
-    Lines(Vec<(f64,f64)>),
-    Text((f64,f64),f64,String),
+    Points(Vec<Point>),
+    Lines(Vec<Point>),
+    Text(Point,f64,String),
     Seq(Vec<Command>)
 }
 
@@ -26,6 +37,64 @@ pub struct Page {
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Book {
     pub pages:Vec<Page>
+}
+
+pub trait Maxable {
+    fn max(self,other:Self)->Self;
+}
+
+impl Point {
+    pub fn with_x(&self,other:Self)->Self {
+	point(other.x,self.y)
+    }
+
+    pub fn with_y(&self,other:Self)->Self {
+	point(self.x,other.y)
+    }
+}
+
+impl Maxable for Point {
+    fn max(self,other:Self)->Self {
+	point(self.x.max(other.x),self.y.max(other.y))
+    }
+}
+
+impl AddAssign<Point> for Point {
+    fn add_assign(&mut self,other:Self) {
+	self.x += other.x;
+	self.y += other.y;
+    }
+}
+
+impl Add<Point> for Point {
+    type Output = Point;
+
+    fn add(self,other:Self)->Self {
+	point(self.x + other.x,self.y + other.y)
+    }
+}
+
+impl Mul<Point> for f64 {
+    type Output = Point;
+
+    fn mul(self,other:Point)->Point {
+	point(self * other.x,self * other.y)
+    }
+}
+
+impl Add<(f64,f64)> for Point {
+    type Output = Point;
+
+    fn add(self,(x,y):(f64,f64))->Self {
+	point(self.x + x,self.y + y)
+    }
+}
+
+impl AddAssign<(f64,f64)> for Point {
+    fn add_assign(&mut self,other:(f64,f64)) {
+	self.x += other.0;
+	self.y += other.1;
+    }
 }
 
 impl Page {
@@ -57,15 +126,26 @@ impl Plot {
 	Self{ commands:Vec::new() }
     }
 
+    pub fn rgb12(&mut self,rgb:u32) {
+	self.color(
+	    (rgb >> 8) as f64 / 15.0,
+	    ((rgb >> 4) & 15) as f64 / 15.0,
+	    (rgb & 15) as f64 / 15.0);
+    }
+
     pub fn color(&mut self,r:f64,g:f64,b:f64) {
 	self.command(Command::Color([r,g,b]));
     }
 
     pub fn line(&mut self,x1:f64,y1:f64,x2:f64,y2:f64) {
-	self.command(Command::Lines(vec![(x1,y1),(x2,y2)]));
+	self.command(Command::Lines(vec![point(x1,y1),point(x2,y2)]));
     }
 
-    pub fn text(&mut self,p:(f64,f64),s:f64,txt:&str) {
+    pub fn lines(&mut self,lines:Vec<Point>) {
+	self.command(Command::Lines(lines));
+    }
+
+    pub fn text(&mut self,p:Point,s:f64,txt:&str) {
 	self.command(Command::Text(p,s,txt.to_string()));
     }
 
