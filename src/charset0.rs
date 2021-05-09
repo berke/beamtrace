@@ -1,5 +1,26 @@
 use std::collections::HashMap;
 
+//         +---------+ --/-----/-
+//         |         |         |
+//         |         |         |
+//         |         |         |
+//         |         |         |
+//         |         |         | H
+// (x0,y0) +---------+ --/--   |
+//         |         |   |     |
+//         |         |   | D   |
+//         |         |   |     |
+//         +---------+ --/-----/-
+//
+//         |         |
+//         |         |
+//         /---------/
+//         |    W    |
+
+pub const W : f64 = 7.0;
+pub const D : f64 = 4.0;
+pub const H : f64 = 11.0;
+
 pub type Glyph = Vec<(bool,i8,i8)>;
 
 pub struct Font {
