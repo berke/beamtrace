@@ -213,7 +213,12 @@ fn bottom_align(obj:&Rc<Object>)->Rc<Object> {
     obj.transformed(&h)
 }
 
-fn ruler<F,G>(font:&Font,y0:f64,y1:f64,p0:Point,p1:Point,size:f64,left:bool,mut label:F,mut ticks:G)->Object
+fn rot90(obj:&Rc<Object>)->Rc<Object> {
+    let h = Homography::rotation(PI/2.0);
+    obj.transformed(&h)
+}
+
+fn ruler<F,G>(font:&Font,y0:f64,y1:f64,p0:Point,p1:Point,size:f64,left:bool,rot:bool,mut label:F,mut ticks:G)->Object
 where F:FnMut(Position,f64)->String,
       G:FnMut(f64,f64,f64)->Array2<f64> {
     //       w   g
@@ -250,7 +255,6 @@ where F:FnMut(Position,f64)->String,
 		Position::Middle
 	    };
 	let txt = label(position,y);
-	println!("  Adding {}/{}",i,n);
 	let p = p0 + v*dl*dv;
 	let pa = p + 2.0*size*du;
 	let pb = pa + 0.5*size*du - (1.0-D/H)*size*dv;
@@ -260,7 +264,8 @@ where F:FnMut(Position,f64)->String,
 			     ORIGIN,
 			     size,
 			     &Text::parse(&txt).unwrap());
-	let obj = if left {left_justify(&obj)} else {obj};
+	let obj = if rot { top_align(&rot90(&obj)) } else { obj };
+	let obj = if left { left_justify(&obj) } else { obj };
 	let obj = obj.transformed(&Homography::translation(pb));
 	current.add_object(&obj);
     }
@@ -287,6 +292,24 @@ fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,p2:Point,
     }
     obj.contents.push(Content::Draw(Command::Lines{ color,lines:vec![line] }));
     obj
+}
+
+fn text_lines(font:&Font,size:f64,color:Color,text:&[&str])->Object {
+    let mut obj = Object::empty();
+    let mut obj = obj.rc();
+    for t in text.iter() {
+	let item = text::text(&font,
+			      color,
+			      ORIGIN,
+			      size,
+			      &Text::parse(t).unwrap());
+	{
+	    let x = Rc::get_mut(&mut obj).unwrap();
+	    x.add_object(&item);
+	}
+	obj = bottom_align(&obj);
+    }
+    Rc::try_unwrap(obj).unwrap()
 }
 
 fn legend(font:&Font,size:f64,es:&[(Color,&str)],textcolor:Color)->Object {
@@ -317,77 +340,85 @@ fn main() {
     let mut font = Font::new();
     let mut bk = Book::new();
     let mut pg = Page::new();
-    let mut pl = Plot::new();
 
-    let mut obj = Object::empty();
-    let size = 10.0;
-    let dx = 150.0;
-    let p1 = point(0.0,200.0);
-    let p3 = dx*point(1.0,0.0);
-    let p2 = p1 + p3;
-    let y0 = 0.0;
-    let y1 = 1013.25;
-    let x0 = -0.1;
-    let x1 = 2.0;
-    ruler(&font,y0,y1,ORIGIN,p1,size,true,
-	  |pos,y| if pos == Position::Last { format!("hPa {:.3}",y) } else { format!("{:.3}",y) },
-	  |y0,y1,dl| {
-	      let m = ((1.0/dl).floor() as usize).max(2);
-	      let mut ticks = Array2::zeros((m,2));
-	      let lus : Array1<f64> = Array1::linspace(0.0,-4.0,m);
-	      // ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-	      // ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
-	      for i in 0..m {
-		  ticks[[i,0]] = 1.0-lus[i].exp();
-		  ticks[[i,1]] = y0 + (y1-y0)*ticks[[i,0]];
-	      }
-	      ticks[[m-1,0]] = 1.0;
-	      ticks[[m-1,1]] = y1;
-	      ticks
-	  }).plot(&mut pl);
-    ruler(&font,x0,x1,p1,p2,size,false,
-	  |_,y| format!("{:.4}",y),
-	  |x0,x1,dl| {
-	      let m = ((1.0/dl).floor() as usize).max(2);
-	      let mut ticks = Array2::zeros((m,2));
-	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-	      ticks
-	  }).plot(&mut pl);
-    // let dx = size*point(20.0,0.0);
-    // ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
+    let dx = 200.0;
+    let pressures = Array1::linspace(200.0,700.0,50);
+    for &pressure0 in pressures.iter() {
+	let mut pl = Plot::new();
+
+	let mut obj = Object::empty();
+	let size = 10.0;
+	let p1 = point(0.0,200.0);
+	let p3 = dx*point(1.0,0.0);
+	let p2 = p1 + p3;
+	let y0 = 0.0;
+	let y1 = 1013.25;
+	let x0 = -0.1;
+	let x1 = 2.0;
+	ruler(&font,y0,y1,ORIGIN,p1,size,true,false,
+	      |pos,y| if pos == Position::Last { format!("hPa {:.3}",y) } else { format!("{:.3}",y) },
+	      |y0,y1,dl| {
+		  let m = ((1.0/dl).floor() as usize).max(2);
+		  let mut ticks = Array2::zeros((m,2));
+		  let lus : Array1<f64> = Array1::linspace(0.0,-4.0,m);
+		  // ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+		  // ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
+		  for i in 0..m {
+		      ticks[[i,0]] = 1.0-lus[i].exp();
+		      ticks[[i,1]] = y0 + (y1-y0)*ticks[[i,0]];
+		  }
+		  ticks[[m-1,0]] = 1.0;
+		  ticks[[m-1,1]] = y1;
+		  ticks
+	      }).plot(&mut pl);
+	ruler(&font,x0,x1,p1,p2,size,false,true,
+	      |_,y| format!("{:.4}",y),
+	      |x0,x1,dl| {
+		  let m = ((1.0/dl).floor() as usize).max(2);
+		  let mut ticks = Array2::zeros((m,2));
+		  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
+		  ticks
+	      }).plot(&mut pl);
+	// let dx = size*point(20.0,0.0);
+	// ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
 	// .plot(&mut pl);
-    pl.rectangle(0xfff,rectangle(ORIGIN,p2));
-    let mut f1 = |p:f64| (-sq((p - 850.0)/150.0)).exp();
-    let mut f2 = |p:f64| (-sq((p - 650.0)/150.0)).exp();
-    let mut f3 = |p:f64| (-sq((p - 350.0)/150.0)).exp();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	curve(ORIGIN,p1,p2,
-	      y0,y1,
-	      x0,x1,
-	      1.0,
-	      false,
-	      color,
-	      f).plot(&mut pl)
-    };
-    g(&mut f1,0xf00);
-    g(&mut f2,0x0f0);
-    g(&mut f3,0x0ff);
+	pl.rectangle(0xfff,rectangle(ORIGIN,p2));
+	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp();
+	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp();
+	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp();
+	let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	    curve(ORIGIN,p1,p2,
+		  y0,y1,
+		  x0,x1,
+		  1.0,
+		  false,
+		  color,
+		  f).plot(&mut pl)
+	};
+	g(&mut f1,0xf00);
+	g(&mut f2,0x0f0);
+	g(&mut f3,0x0ff);
 
-    bottom_align(
-	&text::text(&font,
-		   0xfff,
-		   ORIGIN,
-		   size,
-		   &Text::parse(&format!("Averaging kernels")).unwrap())).plot(&mut pl);
+	bottom_align(
+	    &text_lines(&font,
+			size,
+			0xfff,
+			&[
+			    &format!("Averaging kernels, p0={:.3} hPa",
+				     pressure0),
+			    "Note that the kernels have been normalized by pressure",
+			    "Error amplification: 3x,1.5x"
+			]).rc()).plot(&mut pl);
 
-    left_align(&top_align(&legend(&font,size,
-				  &[(0xf00,"F1"),
-				    (0x0f0,"F2"),
-				    (0x0ff,"F2")],
-				  0xfff).rc())).transformed(&Homography::translation(p3)).plot(&mut pl);
-	      
-    pg.plot(pl);
+	left_align(&top_align(&legend(&font,size,
+				      &[(0xf00,"F1"),
+					(0x0f0,"F2"),
+					(0x0ff,"F2")],
+				      0xfff).rc())).transformed(&Homography::translation(p3)).plot(&mut pl);
+	
+	pg.plot(pl);
+    }
     bk.page(pg);
     bk.save_to_file("traj.mpk").unwrap();
 }
