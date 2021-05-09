@@ -493,7 +493,6 @@ impl Font {
     }
 
     pub fn add(&mut self,c:char,g:Glyph) {
-	println!("Inserting glyph for '{}': {:?}",c,g);
 	self.glyphs.insert(c,g);
     }
 
@@ -509,7 +508,6 @@ impl Font {
 
     pub fn add_table(&mut self,tbl:&[(char,&[u8])]) {
 	for &(c,h) in tbl.iter() {
-	    println!("Table has {}",c);
 	    self.add(c,decode(h));
 	}
     }
