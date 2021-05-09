@@ -33,6 +33,12 @@ pub struct Book {
     pub pages:Vec<Page>
 }
 
+impl Command {
+    pub fn rectangle(color:Color,Rectangle{ a:p0,b:p1 }:Rectangle)->Command {
+	Self::Lines{ color, lines:vec![vec![p0,p0.with_x(p1),p1,p1.with_x(p0),p0]] }
+    }
+}
+
 impl Page {
     pub fn new()->Self {
 	Self{ plots:Vec::new() }

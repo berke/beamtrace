@@ -30,8 +30,8 @@ pub fn point(x:f64,y:f64)->Point {
     Point{ x, y }
 }
 
-pub fn rectangle(a:Point,b:Point)->Rectangle {
-    Rectangle{ a, b }
+pub fn rectangle(p1:Point,p2:Point)->Rectangle {
+    Rectangle{ a:p1.min(p2), b:p1.max(p2) }
 }
 
 impl Rectangle {
@@ -45,7 +45,22 @@ impl Rectangle {
 	self.add_point(r.b);
     }
 
+    pub fn dx(&self)->f64 {
+	self.b.x - self.a.x
+    }
+
+    pub fn dy(&self)->f64 {
+	self.b.y - self.a.y
+    }
+
     pub fn all()->Self {
+	Rectangle{
+	    a:point(NEG_INFINITY,NEG_INFINITY),
+	    b:point(INFINITY,INFINITY)
+	}
+    }
+
+    pub fn empty()->Self {
 	Rectangle{
 	    a:point(INFINITY,INFINITY),
 	    b:point(NEG_INFINITY,NEG_INFINITY)
