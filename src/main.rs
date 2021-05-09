@@ -2,9 +2,10 @@ mod font;
 mod text;
 mod homography;
 
+use std::rc::Rc;
 use std::f64::consts::PI;
-use beamtrace::{point,Point,Rectangle,Book,Page,Plot,Command};
-use text::Text;
+use beamtrace::{point,Point,Rectangle,Color,Book,Page,Plot,Command};
+use text::{Text,Object,Content};
 use font::Font;
 use homography::Homography;
 
@@ -130,34 +131,51 @@ use homography::Homography;
 //     bk.save_to_file("traj.mpk").unwrap();
 // }
 
-struct Object {
-    anchor:Point,
-    bounding:Rectangle
+fn make_rotated_copies(obj:&Rc<Object>,ntheta:usize,theta0:f64)->Rc<Object> {
+    let mut container = Object::empty();
+    let r = ntheta as f64 * obj.area.dy() / (2.0*PI*obj.area.dx());
+    for itheta in 0..ntheta {
+	let theta = theta0 + 2.0 * itheta as f64 * PI / ntheta as f64;
+	let h = Homography::rotation(theta).compose(Homography::translation(point(r,0.0)));
+	let obj2 = obj.transformed(&h);
+	container.add_object(&obj2);
+    }
+    container.rc()
+}
+
+fn draw_bounding_box(color:Color,obj:&Rc<Object>)->Rc<Object> {
+    let mut obj1 = Object::empty();
+    obj1.add_object(&obj);
+    obj1.contents.push(Content::Draw(Command::rectangle(color,obj.area)));
+    obj1.rc()
 }
 
 fn main() {
     let mut font = Font::new();
     let mut bk = Book::new();
 
-    let obj = text::text(&font,
-			 0xf00,
-			 point(0.0,0.0),
-			 1.0,
-			 //&Text::parse("2ln(x)+αcos(x^2)+βsin(y^2)+exp(-kT)^{-1}").unwrap());
-			 &Text::parse("f(x)=x^2+y^2+(x_1*x_2)").unwrap());
 
     let ntheta0 = 100;
     for itheta0 in 0..ntheta0 {
-	let theta0 = 0.1 * 2.0 * itheta0 as f64 * PI / ntheta0 as f64;
-
+	let theta0 = 2.0 * itheta0 as f64 * PI / ntheta0 as f64;
+	let obj : Rc<Object> = text::text(&font,
+					  0xf00,
+					  point(0.0,0.0),
+					  1.0,
+					  //&Text::parse("2ln(x)+αcos(x^2)+βsin(y^2)+exp(-kT)^{-1}").unwrap());
+					  &Text::parse(&format!("{:.3}",theta0)).unwrap());
 	let mut pg = Page::new();
 	let mut pl = Plot::new();
-	let ntheta = 30;
-	for itheta in 0..ntheta {
-	    let theta = theta0 + 2.0 * itheta as f64 * PI / ntheta as f64;
-	    let h = Homography::rotation(theta).compose(Homography::translation(point(35.0,0.0)));
-	    obj.plot_with_transform(&h,&mut pl);
-	}
+	let obj1 = draw_bounding_box(0xff0,&obj);
+	let obj2 = make_rotated_copies(&obj1,5,theta0);
+	let obj3 = draw_bounding_box(0x00f,&obj2);
+	let obj4 = obj3.transformed(&Homography::translation(point(12.0 + 10.0*theta0,3.4)));
+	let obj5 = make_rotated_copies(&obj4,3,theta0);
+	let obj6 = draw_bounding_box(0x481,&obj5);
+	let obj7 = obj6.transformed(&Homography::translation(point(0.0,50.0)));
+	let obj8 = make_rotated_copies(&obj7,7,theta0);
+	let obj9 = draw_bounding_box(0xfff,&obj8);
+	obj9.plot(&mut pl);
 	pg.plot(pl);
 	bk.page(pg);
     }

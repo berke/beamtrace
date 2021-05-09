@@ -1,21 +1,22 @@
 use beamtrace::{point,rectangle,Point,Rectangle,Color,Book,Page,Plot,Command,geometry::ORIGIN};
+use std::rc::Rc;
 use crate::font::{Font,W,D,H};
 use crate::homography::Homography;
 
 #[derive(Clone,Debug)]
 pub struct Object {
     pub area:Rectangle,
-    pub content:Content
+    pub contents:Vec<Content>
 }
 
 #[derive(Clone,Debug)]
 pub enum Content {
     Transform{
 	transform:Homography,
-	object:Box<Object>
+	object:Rc<Object>
     },
     Draw(Command),
-    Objects(Vec<Object>)
+    Object(Rc<Object>)
 }
 
 #[derive(Clone,Debug)]
@@ -27,24 +28,38 @@ pub enum Text {
 }
 
 impl Object {
+    pub fn empty()->Self {
+	Self{
+	    area:Rectangle::empty(),
+	    contents:Vec::new()
+	}
+    }
+
+    pub fn add_object(&mut self,obj:&Rc<Self>) {
+	self.area.add_rectangle(obj.area);
+	self.contents.push(Content::Object(Rc::clone(obj)))
+    }
+
+    pub fn rc(self)->Rc<Self> {
+	Rc::new(self)
+    }
+    
     pub fn plot_with_transform(&self,h:&Homography,pl:&mut Plot) {
-	match &self.content {
-	    &Content::Draw(Command::Points{ color,ref points }) =>
-		pl.command(Command::Points{ color,points:points.iter().map(|&p| h.apply(p)).collect() }),
-	    &Content::Draw(Command::Lines{ color,ref lines }) =>
-		pl.command(Command::Lines{
-		    color,
-		    lines:lines.iter()
-			.map(|line|
-			     line.iter().map(|&p| h.apply(p)).collect()).collect() }),
-	    Content::Objects(objs) => {
-		for obj in objs {
-		    obj.plot_with_transform(h,pl);
+	for c in self.contents.iter() {
+	    match c {
+		&Content::Draw(Command::Points{ color,ref points }) =>
+		    pl.command(Command::Points{ color,points:points.iter().map(|&p| h.apply(p)).collect() }),
+		&Content::Draw(Command::Lines{ color,ref lines }) =>
+		    pl.command(Command::Lines{
+			color,
+			lines:lines.iter()
+			    .map(|line|
+				 line.iter().map(|&p| h.apply(p)).collect()).collect() }),
+		Content::Object(obj) => obj.plot_with_transform(h,pl),
+		&Content::Transform{ transform,ref object } => {
+		    let h = h.compose(transform);
+		    object.plot_with_transform(&h,pl);
 		}
-	    },
-	    &Content::Transform{ transform,ref object } => {
-		let h = h.compose(transform);
-		object.plot_with_transform(&h,pl);
 	    }
 	}
     }
@@ -52,9 +67,33 @@ impl Object {
     pub fn plot(&self,pl:&mut Plot) {
 	self.plot_with_transform(&Homography::id(),pl);
     }
+
+    pub fn transformed(self:&Rc<Self>,h:&Homography)->Rc<Object> {
+	Rc::new(Object{
+	    area:self.area.transform(h),
+	    contents:vec![Content::Transform{ transform:h.clone(), object:Rc::clone(&self) }]
+	})
+    }
 }
 
-pub fn glyph(font:&Font,color:Color,mut p0:Point,s:f64,c:char)->Object {
+trait Transformable {
+    fn transform(&self,h:&Homography)->Self;
+}
+
+impl Transformable for Rectangle {
+    fn transform(&self,h:&Homography)->Self {
+	let p0 = h.apply(self.a);
+	let p1 = h.apply(self.a.with_x(self.b));
+	let p2 = h.apply(self.b);
+	let p3 = h.apply(self.b.with_y(self.a));
+	let mut r0 = rectangle(p0,p1);
+	r0.add_point(p2);
+	r0.add_point(p3);
+	r0
+    }
+}
+
+pub fn glyph(font:&Font,color:Color,mut p0:Point,s:f64,c:char)->Rc<Object> {
     let area = rectangle(ORIGIN,point(W,H));
     p0 += (0.0,s*H);
     let pp0 = p0;
@@ -87,42 +126,42 @@ pub fn glyph(font:&Font,color:Color,mut p0:Point,s:f64,c:char)->Object {
 	    lines.push(new_line);
 	}
     }
-    Object{ area,content:Content::Draw(Command::Lines{ color,lines }) }
+    Rc::new(Object{ area,contents:vec![Content::Draw(Command::Lines{ color,lines })] })
 }
 
-pub fn text(font:&Font,color:Color,mut p0:Point,s:f64,t:&Text)->Object {
+pub fn text(font:&Font,color:Color,mut p0:Point,s:f64,t:&Text)->Rc<Object> {
     let mut r0 = rectangle(p0,p0);
-    let mut objs = Vec::new();
+    let mut contents : Vec<Content> = Vec::new();
     match t {
 	&Text::Char(c) => {
 	    let p1 = p0.with_x(r0.b);
 	    let obj = glyph(font,color,p1,s,c);
 	    let p2 = p1 + (s*W,s*H);
 	    r0.add_rectangle(rectangle(p1,p2));
-	    objs.push(obj);
+	    contents.push(Content::Object(obj));
 	},
 	Text::Seq(v) => {
 	    for t in v.iter() {
 		let obj = text(font,color,p0.with_x(r0.b),s,t);
 		r0.add_rectangle(obj.area);
-		objs.push(obj);
+		contents.push(Content::Object(obj));
 	    }
 	},
 	Text::Sup(t) => {
 	    let p = p0.with_x(r0.b) + (0.0,-H/3.0);
 	    let obj = text(font,color,p,2.0*s/3.0,t);
 	    r0.add_rectangle(obj.area);
-	    objs.push(obj);
+	    contents.push(Content::Object(obj));
 	},
 	Text::Sub(t) => {
 	    let p1 = p0.with_x(r0.b) + (0.0, H/3.0);
 	    let obj = text(font,color,p1,2.0*s/3.0,t);
 	    r0.add_rectangle(obj.area);
-	    objs.push(obj);
+	    contents.push(Content::Object(obj));
 	}
     }
-    Object{ area:r0,
-	    content:Content::Objects(objs) }
+    Rc::new(Object{ area:r0,
+		    contents })
 }
 
 #[derive(Debug)]
