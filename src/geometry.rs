@@ -92,6 +92,15 @@ impl Point {
     pub fn as_pair(&self)->(f64,f64) {
 	(self.x,self.y)
     }
+
+    pub fn norm(self)->f64 {
+	self.x.hypot(self.y)
+    }
+
+    pub fn normalize(self)->Self {
+	let n = self.norm();
+	point(self.x/n,self.y/n)
+    }
 }
 
 impl SubAssign<Point> for Point {

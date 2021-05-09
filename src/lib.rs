@@ -34,6 +34,10 @@ pub struct Book {
 }
 
 impl Command {
+    pub fn line(color:Color,p1:Point,p2:Point)->Command {
+	Self::Lines{ color,lines:vec![vec![p1,p2]] }
+    }
+
     pub fn rectangle(color:Color,Rectangle{ a:p0,b:p1 }:Rectangle)->Command {
 	Self::Lines{ color, lines:vec![vec![p0,p0.with_x(p1),p1,p1.with_x(p0),p0]] }
     }
@@ -80,7 +84,7 @@ impl Plot {
 	self.command(Command::Lines{ color,lines });
     }
 
-    pub fn rect(&mut self,color:Color,Rectangle{ a:p0,b:p1 }:Rectangle) {
+    pub fn rectangle(&mut self,color:Color,Rectangle{ a:p0,b:p1 }:Rectangle) {
 	self.lines(color,vec![vec![p0,p0.with_x(p1),p1,p1.with_x(p0),p0]]);
     }
 
