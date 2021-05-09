@@ -1,3 +1,4 @@
+use std::f64::{NEG_INFINITY,INFINITY};
 use std::ops::{Add,AddAssign,Sub,SubAssign,Mul};
 use std::path::Path;
 use std::error::Error;
@@ -17,7 +18,7 @@ pub struct Rectangle {
     pub b:Point
 }
 
-#[derive(Copy,Clone,Debug)]
+#[derive(Copy,Clone,Debug,Serialize,Deserialize)]
 pub struct Homography {
     coefs:[[f64;3];3]
 }
@@ -44,8 +45,8 @@ impl Homography {
     }
 
     pub fn translate(&mut self,p:Point) {
-	self.coefs[0][2] += p.x;
-	self.coefs[1][2] += p.y;
+	self.coefs[0][2] += p.x * self.coefs[2][2];
+	self.coefs[1][2] += p.y * self.coefs[2][2];
     }
 
     pub fn apply(&self,p:Point)->Point {
@@ -73,6 +74,25 @@ impl Homography {
     }
 }
 
+pub trait Transformable {
+    fn apply(&mut self,h:&Homography);
+}
+
+impl Transformable for Point {
+    fn apply(&mut self,h:&Homography) {
+	*self = h.apply(self.clone());
+    }
+}
+
+impl Transformable for Rectangle {
+    fn apply(&mut self,h:&Homography) {
+	let pts : Vec<Point> =
+	    vec![self.a,self.a.with_x(self.b),self.b,self.b.with_y(self.a)]
+	    .iter().map(|&p| h.apply(p)).collect();
+	*self = Self::bounding(&pts);
+    }
+}
+
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum Command {
     Color([f64;3]),
@@ -81,6 +101,7 @@ pub enum Command {
     Translate(Point),
     Scale(f64),
     Rotate(f64),
+    Transform(Homography),
     Seq(Vec<Command>),
     Group(Plot)
 }
@@ -108,6 +129,17 @@ impl Rectangle {
     pub fn add_rectangle(&mut self,r:Rectangle) {
 	self.add_point(r.a);
 	self.add_point(r.b);
+    }
+
+    pub fn all()->Self {
+	Rectangle{
+	    a:point(INFINITY,INFINITY),
+	    b:point(NEG_INFINITY,NEG_INFINITY)
+	}
+    }
+
+    pub fn bounding(pts:&[Point])->Rectangle {
+	pts.iter().fold(Self::all(),|r,&p| { let mut r = r.clone(); r.add_point(p); r })
     }
 }
 
@@ -260,6 +292,10 @@ impl Plot {
 	self.command(Command::Rotate(theta));
     }
 
+    pub fn transform(&mut self,h:Homography) {
+	self.command(Command::Transform(h));
+    }
+
     pub fn translate(&mut self,p:Point) {
 	self.command(Command::Translate(p));
     }
@@ -278,6 +314,10 @@ impl Plot {
 
     pub fn lines(&mut self,lines:Vec<Point>) {
 	self.command(Command::Lines(lines));
+    }
+
+    pub fn rect(&mut self,Rectangle{ a:p0,b:p1 }:Rectangle) {
+	self.lines(vec![p0,p0.with_x(p1),p1,p1.with_x(p0),p0]);
     }
 
     pub fn command(&mut self,cmd:Command) {
