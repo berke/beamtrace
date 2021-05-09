@@ -14,10 +14,13 @@ pub fn rect(pl:&mut Plot,Rectangle{ a:p0,b:p1 }:Rectangle) {
 }
 
 pub fn glyph(font:&Font,pl:&mut Plot,mut p0:Point,s:f64,c:char) {
-    pl.rgb12(0xf00);
-    rect(pl,rectangle(p0,p0+(s*W,s*(H-D))));
-    rect(pl,rectangle(p0+(0.0,s*(H-D)),p0+(s*W,s*H)));
-    pl.rgb12(0xfff);
+    if false {
+	let mut pl1 = Plot::new();
+	pl1.rgb12(0xf00);
+	rect(&mut pl1,rectangle(p0,p0+(s*W,s*(H-D))));
+	rect(&mut pl1,rectangle(p0+(0.0,s*(H-D)),p0+(s*W,s*H)));
+	pl.group(pl1);
+    }
 
     p0 += (0.0,s*H);
     let pp0 = p0;
