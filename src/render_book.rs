@@ -39,8 +39,8 @@ fn main()->Result<(),Box<dyn Error>> {
     let bk = Book::load_from_file(in_fn).unwrap();
 
     let ss = 16;
-    let ny = 600;
-    let nx = 800;
+    let ny = 1024;
+    let nx = 1920;
 
     let invert = 0xfff;
 
