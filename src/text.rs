@@ -93,7 +93,8 @@ impl Transformable for Rectangle {
     }
 }
 
-pub fn glyph(font:&Font,color:Color,mut p0:Point,s:f64,c:char)->Rc<Object> {
+pub fn glyph(font:&Font,color:Color,mut p0:Point,s0:f64,c:char)->Rc<Object> {
+    let s = s0 / H;
     let area = rectangle(ORIGIN,point(W,H));
     p0 += (0.0,s*H);
     let pp0 = p0;
@@ -136,7 +137,7 @@ pub fn text(font:&Font,color:Color,mut p0:Point,s:f64,t:&Text)->Rc<Object> {
 	&Text::Char(c) => {
 	    let p1 = p0.with_x(r0.b);
 	    let obj = glyph(font,color,p1,s,c);
-	    let p2 = p1 + (s*W,s*H);
+	    let p2 = p1 + (s*W/H,s);
 	    r0.add_rectangle(rectangle(p1,p2));
 	    contents.push(Content::Object(obj));
 	},
@@ -274,5 +275,9 @@ impl Text {
 	} else {
 	    error!("Incomplete input at {}",&u[w[0].i..])
 	}
+    }
+
+    pub fn span(u:&str)->Text {
+	Text::Seq(u.chars().map(|c| Text::Char(c)).collect())
     }
 }
