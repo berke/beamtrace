@@ -17,7 +17,7 @@ use std::collections::HashMap;
 //         /---------/
 //         |    W    |
 
-pub const W : f64 = 7.0;
+pub const W : f64 = 5.0; // 7.0
 pub const D : f64 = 4.0;
 pub const H : f64 = 11.0;
 
@@ -489,24 +489,27 @@ fn decode(u:&[u8])->Vec<(bool,i8,i8)> {
 
 impl Font {
     pub fn new()->Self {
-	Self{ glyphs:HashMap::new() }
+	let mut this = Self{ glyphs:HashMap::new() };
+	this.add_ascii();
+	this.add_math();
+	this
     }
 
     pub fn add(&mut self,c:char,g:Glyph) {
 	self.glyphs.insert(c,g);
     }
 
-    pub fn add_ascii(&mut self) {
+    fn add_ascii(&mut self) {
 	for k in 0..128 {
 	    self.add(k.into(),Vec::from(FONT0[k as usize]));
 	}
     }
 
-    pub fn add_math(&mut self) {
+    fn add_math(&mut self) {
 	self.add_table(FONT173);
     }
 
-    pub fn add_table(&mut self,tbl:&[(char,&[u8])]) {
+    fn add_table(&mut self,tbl:&[(char,&[u8])]) {
 	for &(c,h) in tbl.iter() {
 	    self.add(c,decode(h));
 	}

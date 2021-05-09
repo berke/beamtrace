@@ -12,7 +12,15 @@ repository = "https://github.com/berke/beamtrace"
 serde = { version = "1.0", features = ["derive"] }
 rmp-serde = { version = "^0.15" }
 beamtrace = { path = "../beamtrace" }
+serde = { version = "1.0", features = ["derive"] }
+rmp-serde = { version = "^0.15" }
+# clap = { version = "^2.33" }
 ndarray = { version = "^0.13" }
 ndarray-linalg = { version = "^0.12" }
 num-complex = { version = "^0.1" }
 num-traits = { version = "^0.2" }
+# rand = { version = "^0.5" }
+
+[[bin]]
+name = "show_book"
+path = "src/show_book.rs"
