@@ -91,6 +91,27 @@ impl Plot {
     pub fn command(&mut self,cmd:Command) {
 	self.commands.push(cmd);
     }
+
+    pub fn bounding(&self)->Rectangle {
+	let mut r = Rectangle::empty();
+	for cmd in self.commands.iter() {
+	    match cmd {
+		Command::Points{ points, .. } => {
+		    for &p in points.iter() {
+			r.add_point(p);
+		    }
+		},
+		Command::Lines{ lines, .. } => {
+		    for line in lines.iter() {
+			for &p in line.iter() {
+			    r.add_point(p);
+			}
+		    }
+		}
+	    }
+	}
+	r
+    }
 }
 
 impl Book {
