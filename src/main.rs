@@ -12,128 +12,6 @@ use ndarray::{Array1,Array2,s};
 
 const DEGREE : f64 = PI/180.0;
 
-// fn main1() {
-//     let mut font = Font::new();
-//     font.add_ascii();
-//     font.add_math();
-//     let mut bk = Book::new();
-//     let mut pg = Page::new();
-
-//     let mut pl1 = Plot::new();
-//     let p0 = point(0.0,0.0);
-//     pl1.rgb12(0xfff);
-//     let r = text::text(&font,
-//     			&mut pl1,p0,1.0,
-//     			&Text::parse("FELIX et CASSIUS").unwrap());
-//     			//&Text::parse("e^{2πft + j(x^2+y^2)} + x^{2 + αy^{3 + z^{x + 33}}} - 5").unwrap());
-//     pl1.rgb12(0xff0);
-//     text::rect(&mut pl1,r);
-//     pl1.rgb12(0x0f0);
-//     let w = 0.5;
-//     pl1.line(p0,p0+(w,0.0));
-//     pl1.line(p0,p0-(w,0.0));
-//     pl1.line(p0,p0+(0.0,w));
-//     pl1.line(p0,p0-(0.0,w));
-
-//     let sx = r.b.x - r.a.x;
-//     let sy = r.b.y - r.a.y;
-
-//     let mut pl = Plot::new();
-//     let mut theta = 0.0;
-//     let ntheta = 30;
-//     let radius = sy * ntheta as f64 / (2.0*PI);
-//     use std::f64::consts::PI;
-//     for itheta in 0..ntheta {
-// 	let theta = 2.0 * itheta as f64 * PI / ntheta as f64;
-// 	let x = radius * theta.cos();
-// 	let y = radius * theta.sin();
-// 	let p = point(x,y);
-// 	let mut pl2 = Plot::new();
-// 	pl2.rotate(-(theta ));
-// 	pl2.translate(p);
-// 	pl2.group(pl1.clone());
-// 	pl.group(pl2);
-//     }
-
-//     pg.plot(pl);
-//     bk.page(pg);
-//     bk.save_to_file("traj.mpk").unwrap();
-// }
-
-// //
-
-// use ndarray::{Array1};
-
-// fn crosshair(pl:&mut Plot,p:Point,w:f64) {
-//     let mut pl1 = Plot::new();
-//     pl1.rgb12(0xf00);
-//     pl1.line(point(-w,0.0),point(w,0.0));
-//     pl1.line(point(0.0,-w),point(0.0,w));
-//     pl.group(pl1)
-// }
-
-// fn main() {
-//     let mut font = Font::new();
-//     font.add_ascii();
-//     font.add_math();
-//     let mut bk = Book::new();
-//     let mut pg = Page::new();
-//     let mut pl = Plot::new();
-
-//     let f = |x:f64|->f64 { (x*x).cos() };
-
-//     let vscale = 5.0;
-//     let x0 = -10.0;
-//     let x1 = 10.0;
-//     let nx = 2500;
-//     let xs = Array1::linspace(x0,x1,nx);
-//     let pts : Vec<Point> = xs.iter().map(|&x| point(x,vscale*f(x))).collect();
-//     let mut r = Rectangle::bounding(&pts);
-//     r.a.x = x0;
-//     r.b.x = x1;
-//     pl.rgb12(0xf00);
-//     pl.rect(r);
-//     println!("Points: {:?}",pts);
-//     println!("Bounding box: {:?}",r);
-//     pl.rgb12(0xfff);
-//     pl.lines(pts);
-
-//     let mut pl1 = Plot::new();
-//     let mut r1 = text::text(&font,
-//     		       &mut pl1,point(0.0,0.0),
-// 		       1.0,
-// 		       &Text::parse("αcos(x^2)+βsin(y^2)+exp(-kT)^{-1}").unwrap());
-//     let mut pl2 = Plot::new();
-//     let w1 = r1.b.x - r1.a.x;
-//     let w = r.b.x - r.a.x;
-//     let sx = w / w1;
-//     let h1 = r1.b.x - r1.a.x;
-//     let h = r.b.x - r.a.x;
-//     let sy = 0.1 * h / h1;
-//     let s = sx.max(sy);
-
-
-//     let mut h = Homography::id();
-//     h.scale(s);
-
-//     let mut r1b = r1.clone();
-//     r1b.apply(&h);
-
-//     //h.translate(point(r.a.x - r1b.a.x,r1b.b.y - r.a.y));
-//     h.translate(point(r.a.x - r1b.a.x,r.a.y - r1b.b.y));
-
-//     pl2.transform(h);
-//     pl2.rgb12(0xfff);
-//     pl2.group(pl1);
-//     pl.group(pl2);
-
-//     crosshair(&mut pl,point(r.a.x - r1.a.x, r1.b.y - r1.a.y),s/2.0);
-
-//     pg.plot(pl);
-//     bk.page(pg);
-//     bk.save_to_file("traj.mpk").unwrap();
-// }
-
 fn make_rotated_copies(obj:&Rc<Object>,ntheta:usize,theta0:f64)->Rc<Object> {
     let mut container = Object::empty();
     let r = ntheta as f64 * obj.area.dy() / (2.0*PI*obj.area.dx());
@@ -342,8 +220,9 @@ fn main() {
     let mut pg = Page::new();
 
     let dx = 200.0;
-    let pressures = Array1::linspace(200.0,700.0,50);
-    for &pressure0 in pressures.iter() {
+    // let pressures = Array1::linspace(200.0,700.0,50);
+    // for &pressure0 in pressures.iter() {
+	let pressure0 = 350.0;
 	let mut pl = Plot::new();
 
 	let mut obj = Object::empty();
@@ -377,16 +256,16 @@ fn main() {
 		  let m = ((1.0/dl).floor() as usize).max(2);
 		  let mut ticks = Array2::zeros((m,2));
 		  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
+		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(0.0,x1,m));
 		  ticks
 	      }).plot(&mut pl);
 	// let dx = size*point(20.0,0.0);
 	// ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
 	// .plot(&mut pl);
 	pl.rectangle(0xfff,rectangle(ORIGIN,p2));
-	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp();
-	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp();
-	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp();
+	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp() + 0.05*(p/25.0).cos();
+	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp() + 0.10*(p/30.0).cos();
+	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
 	let mut g = |f:&mut Fn(f64)->f64,color:Color| {
 	    curve(ORIGIN,p1,p2,
 		  y0,y1,
@@ -405,10 +284,10 @@ fn main() {
 			size,
 			0xfff,
 			&[
-			    &format!("Averaging kernels, p0={:.3} hPa",
+			    &format!("Averaging kernels, p_0={:.3} hPa",
 				     pressure0),
 			    "Note that the kernels have been normalized by pressure",
-			    "Error amplification: 3x,1.5x"
+			    "Error amplification: 3x,1.5x, Q=σAT^4"
 			]).rc()).plot(&mut pl);
 
 	left_align(&top_align(&legend(&font,size,
@@ -418,7 +297,7 @@ fn main() {
 				      0xfff).rc())).transformed(&Homography::translation(p3)).plot(&mut pl);
 	
 	pg.plot(pl);
-    }
+    // }
     bk.page(pg);
     bk.save_to_file("traj.mpk").unwrap();
 }
