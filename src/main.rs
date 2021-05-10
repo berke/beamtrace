@@ -96,9 +96,75 @@ fn rot90(obj:&Rc<Object>)->Rc<Object> {
     obj.transformed(&h)
 }
 
-fn ruler<F,G>(font:&Font,y0:f64,y1:f64,p0:Point,p1:Point,size:f64,left:bool,rot:bool,mut label:F,mut ticks:G)->Object
-where F:FnMut(Position,f64)->String,
-      G:FnMut(f64,f64,f64)->Array2<f64> {
+pub trait Map {
+    fn domain(&self)->(f64,f64);
+    fn codomain(&self)->(f64,f64);
+    fn direct(&self,x:f64)->f64;
+    fn inverse(&self,x:f64)->f64;
+}
+
+struct LinearMap {
+    x0:f64,
+    x1:f64,
+    y0:f64,
+    y1:f64
+}
+
+impl LinearMap {
+    fn new(x0:f64,x1:f64,y0:f64,y1:f64)->Self {
+	Self{ x0,x1,y0,y1 }
+    }
+}
+
+impl Map for LinearMap {
+    fn domain(&self)->(f64,f64) { (self.x0,self.x1) }
+    fn codomain(&self)->(f64,f64) { (self.y0,self.y1) }
+    fn direct(&self,x:f64)->f64 {
+	self.y0 + (self.y1 - self.y0)*(x - self.x0)/(self.x1 - self.x0)
+    }
+    fn inverse(&self,y:f64)->f64 {
+	self.x0 + (self.x1 - self.x0)*(y - self.y0)/(self.y1 - self.y0)
+    }
+}
+
+fn try_ticks<M,F> (m:usize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(f64,String)>>
+where M:Map,F:FnMut(Position,f64)->String {
+    let (x0,x1) = map.domain();
+    let (y0,y1) = map.codomain();
+    let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor() - 1.0);
+    let mut ticks = Vec::new();
+    let mut y = y0;
+    //for i in 0..m {
+    let mut i = 0;
+    while y <= y1 {
+	let x = map.inverse(y);
+	ticks.push((x,y));
+	if i > 0 {
+	    if (map.inverse(ticks[i - 1].0) - map.inverse(y)).abs() < min_spacing {
+		return None
+	    }
+	}
+	y += dy;
+	i += 1;
+    }
+    let m = ticks.len();
+    Some(ticks.iter().enumerate().map(|(i,&(x,y))| {
+	let pos =
+	    if i == 0 {
+		Position::First
+	    } else if i + 1 == m {
+		Position::Last
+	    } else {
+		Position::Middle
+	    };
+	(x,label(pos,y))
+    }).collect())
+}
+
+fn ruler(font:&Font,size:f64,
+	 p0:Point,p1:Point,
+	 left:bool,rot:bool,
+	 ticks:&[(f64,String)])->Object {
     //       w   g
     // y0 +------ 1
     //    |
@@ -116,24 +182,13 @@ where F:FnMut(Position,f64)->String,
     let dv = (p1 - p0).normalize();
     let du = if left { -1.0 } else { 1.0 } * point(dv.y,dv.x);
 
-    let vys = ticks(y0,y1,(size+spacing)/dl);
-    let (n,_) = vys.dim();
+    let n = ticks.len();
 
     let mut current = Object::empty();
     current.contents.push(Content::Draw(Command::line(0xfff,p0,p1)));
     for i in 0..n {
-	let v = vys[[i,0]];
-	let y = vys[[i,1]];
-	let position =
-	    if i == 0 {
-		Position::First
-	    } else if i + 1 == n {
-		Position::Last
-	    } else {
-		Position::Middle
-	    };
-	let txt = label(position,y);
-	let p = p0 + v*dl*dv;
+	let &(v,ref txt) = &ticks[i];
+	let p = p0 + v*dv;
 	let pa = p + 2.0*size*du;
 	let pb = pa + 0.5*size*du - (1.0-D/H)*size*dv;
 	current.contents.push(Content::Draw(Command::line(0xfff,p,pa)));
@@ -224,130 +279,135 @@ fn main() {
     let dx = 100.0;
     // let pressures = Array1::linspace(200.0,700.0,50);
     // for &pressure0 in pressures.iter() {
-	let pressure0 = 350.0;
-	let mut pl = Plot::new();
+    let pressure0 = 350.0;
+    let mut pl = Plot::new();
 
-	let mut obj = Object::empty();
-	let size = 10.0;
-	let p1 = point(0.0,200.0);
-	let p3 = dx*point(1.0,0.0);
-	let p2 = p1 + p3;
-	let y0 = 0.0;
-	let y1 = 1013.25;
-	let x0 = -0.5;
-	let x1 = 3.0;
-	ruler(&font,y0,y1,ORIGIN,p1,size,true,false,
-	      |pos,y| if pos == Position::Last { format!("hPa {:.3}",y) } else { format!("{:.3}",y) },
-	      |y0,y1,dl| {
-		  let m = ((1.0/dl).floor() as usize).max(2);
-		  let mut ticks = Array2::zeros((m,2));
-		  if true {
-		      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
-		  } else {
-		      let lus : Array1<f64> = Array1::linspace(0.0,-4.0,m);
-		      // ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		      // ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
-		      for i in 0..m {
-			  ticks[[i,0]] = 1.0-lus[i].exp();
-			  ticks[[i,1]] = y0 + (y1-y0)*ticks[[i,0]];
-		      }
-		      ticks[[m-1,0]] = 1.0;
-		      ticks[[m-1,1]] = y1;
-		  }
-		  ticks
-	      }).plot(&mut pl);
-	ruler(&font,x0,x1,p1,p2,size,false,true,
-	      |_,y| format!("{:.4}",y),
-	      |x0,x1,dl| {
-		  let m = ((1.0/dl).floor() as usize).max(2);
-		  let mut ticks = Array2::zeros((m,2));
-		  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-		  ticks
-	      }).plot(&mut pl);
-	// let dx = size*point(20.0,0.0);
-	// ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
-	// .plot(&mut pl);
+    let mut obj = Object::empty();
+    let size = 10.0;
+    let p1 = point(0.0,200.0);
+    let p3 = dx*point(1.0,0.0);
+    let p2 = p1 + p3;
+    let y0 = 0.0;
+    let y1 = 1013.25;
+    let x0 = -0.5;
+    let x1 = 3.0;
 
-	pl.rectangle(0xfff,rectangle(ORIGIN,p2));
-	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp() + 0.05*(p/25.0).cos();
-	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp() + 0.10*(p/30.0).cos();
-	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
-	let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	    curve(ORIGIN,p1,p2,
-		  y0,y1,
-		  x0,x1,
-		  1.0,
-		  false,
-		  color,
-		  f).plot(&mut pl)
-	};
-	g(&mut f1,0xf00);
-	g(&mut f2,0x0f0);
-	g(&mut f3,0x0ff);
-	bottom_align(&text_lines(&font, size, 0xfff, &["T"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
+    let map_y = LinearMap::new(0.0,p1.y,y0,y1);
+    let ticks_y = try_ticks(5,&map_y,
+			    |pos,y| if pos == Position::Last { format!("hPa {}",y) } else { format!("{}",y) },
+			    2.0e-3*size).unwrap();
+    println!("Ticks Y: {:?}",ticks_y);
 
-    let origin = origin + point(size,0.0) + p3;
+    ruler(&font,size,ORIGIN,p1,true,false,&ticks_y).plot(&mut pl);
+	  // |y0,y1,dl| {
+	  //     let m = ((1.0/dl).floor() as usize).max(2);
+	  //     let mut ticks = Array2::zeros((m,2));
+	  //     if true {
+	  // 	  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+	  // 	  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
+	  //     } else {
+	  // 	  let lus : Array1<f64> = Array1::linspace(0.0,-4.0,m);
+	  // 	  // ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+	  // 	  // ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
+	  // 	  for i in 0..m {
+	  // 	      ticks[[i,0]] = 1.0-lus[i].exp();
+	  // 	      ticks[[i,1]] = y0 + (y1-y0)*ticks[[i,0]];
+	  // 	  }
+	  // 	  ticks[[m-1,0]] = 1.0;
+	  // 	  ticks[[m-1,1]] = y1;
+	  //     }
+	  //     ticks
+    // ruler(&font,x0,x1,p1,p2,size,false,true,
+    // 	  |_,y| format!("{:.4}",y),
+    // 	  |x0,x1,dl| {
+    // 	      let m = ((1.0/dl).floor() as usize).max(2);
+    // 	      let mut ticks = Array2::zeros((m,2));
+    // 	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+    // 	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
+    // 	      ticks
+    // 	  }).plot(&mut pl);
+    // let dx = size*point(20.0,0.0);
+    // ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
+    // .plot(&mut pl);
 
-	pl.rectangle(0xfff,rectangle(origin,origin+p2));
-	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
-	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
-	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
-	let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	    curve(origin,origin+p1,origin+p2,
-		  y0,y1,
-		  x0,x1,
-		  1.0,
-		  false,
-		  color,
-		  f).plot(&mut pl)
-	};
-	g(&mut f1,0xf00);
-	g(&mut f2,0x0f0);
-	g(&mut f3,0x0ff);
-	ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
-	      |_,y| format!("{:.4}",y),
-	      |x0,x1,dl| {
-		  let m = ((1.0/dl).floor() as usize).max(2);
-		  let mut ticks = Array2::zeros((m,2));
-		  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-		  ticks
-	      }).plot(&mut pl);
-	bottom_align(&text_lines(&font, size, 0xfff, &["H_2O"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
+    pl.rectangle(0xfff,rectangle(ORIGIN,p2));
+    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp() + 0.05*(p/25.0).cos();
+    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp() + 0.10*(p/30.0).cos();
+    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
+    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	curve(ORIGIN,p1,p2,
+	      y0,y1,
+	      x0,x1,
+	      1.0,
+	      false,
+	      color,
+	      f).plot(&mut pl)
+    };
+    g(&mut f1,0xf00);
+    g(&mut f2,0x0f0);
+    g(&mut f3,0x0ff);
+    bottom_align(&text_lines(&font, size, 0xfff, &["T"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
     let origin = origin + point(size,0.0) + p3;
 
-	pl.rectangle(0xfff,rectangle(origin,origin + p2));
-	let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
-	let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
-	let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
-	let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
-	let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	    curve(origin,origin + p1,origin + p2,
-		  y0,y1,
-		  x0,x1,
-		  1.0,
-		  false,
-		  color,
-		  f).plot(&mut pl)
-	};
-	g(&mut f1,0xf00);
-	g(&mut f2,0x0f0);
-	g(&mut f3,0x0ff);
-	g(&mut f4,0xff0);
-	ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
-	      |_,y| format!("{:.4}",y),
-	      |x0,x1,dl| {
-		  let m = ((1.0/dl).floor() as usize).max(2);
-		  let mut ticks = Array2::zeros((m,2));
-		  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-		  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-		  ticks
-	      }).plot(&mut pl);
+    pl.rectangle(0xfff,rectangle(origin,origin+p2));
+    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
+    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
+    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
+    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	curve(origin,origin+p1,origin+p2,
+	      y0,y1,
+	      x0,x1,
+	      1.0,
+	      false,
+	      color,
+	      f).plot(&mut pl)
+    };
+    g(&mut f1,0xf00);
+    g(&mut f2,0x0f0);
+    g(&mut f3,0x0ff);
+    // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
+    // 	  |_,y| format!("{:.4}",y),
+    // 	  |x0,x1,dl| {
+    // 	      let m = ((1.0/dl).floor() as usize).max(2);
+    // 	      let mut ticks = Array2::zeros((m,2));
+    // 	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+    // 	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
+    // 	      ticks
+    // 	  }).plot(&mut pl);
+    bottom_align(&text_lines(&font, size, 0xfff, &["H_2O"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
-	bottom_align(&text_lines(&font, size, 0xfff, &["CH_4"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
+    let origin = origin + point(size,0.0) + p3;
+
+    pl.rectangle(0xfff,rectangle(origin,origin + p2));
+    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
+    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
+    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
+    let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
+    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	curve(origin,origin + p1,origin + p2,
+	      y0,y1,
+	      x0,x1,
+	      1.0,
+	      false,
+	      color,
+	      f).plot(&mut pl)
+    };
+    g(&mut f1,0xf00);
+    g(&mut f2,0x0f0);
+    g(&mut f3,0x0ff);
+    g(&mut f4,0xff0);
+    // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
+    // 	  |_,y| format!("{:.4}",y),
+    // 	  |x0,x1,dl| {
+    // 	      let m = ((1.0/dl).floor() as usize).max(2);
+    // 	      let mut ticks = Array2::zeros((m,2));
+    // 	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
+    // 	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
+    // 	      ticks
+    // 	  }).plot(&mut pl);
+
+    bottom_align(&text_lines(&font, size, 0xfff, &["CH_4"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
     let subtitle =
 	left_align(&top_align(&legend(&font,size,
@@ -369,8 +429,8 @@ fn main() {
 			"Error amplification: 3x,1.5x, Q=σAT^4"
 		    ]).rc())
 	.transformed(&Homography::translation(point(0.0,subtitle.area.a.y - 2.0*size))).plot(&mut pl);
-	
-	pg.plot(pl);
+    
+    pg.plot(pl);
     // }
     bk.page(pg);
     bk.save_to_file("traj.mpk").unwrap();
