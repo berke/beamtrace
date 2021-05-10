@@ -127,25 +127,28 @@ impl Map for LinearMap {
     }
 }
 
-fn try_ticks<M,F> (m:usize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(f64,String)>>
+fn try_ticks<M,F> (d:isize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(f64,String)>>
 where M:Map,F:FnMut(Position,f64)->String {
     let (x0,x1) = map.domain();
     let (y0,y1) = map.codomain();
-    let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor() - 1.0);
+    let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor() - d as f64);
     let mut ticks = Vec::new();
-    let mut y = y0;
+    let mut y = y0 - y0.rem_euclid(dy);
     //for i in 0..m {
     let mut i = 0;
     while y <= y1 {
 	let x = map.inverse(y);
-	ticks.push((x,y));
-	if i > 0 {
-	    if (map.inverse(ticks[i - 1].0) - map.inverse(y)).abs() < min_spacing {
-		return None
+	if x0 <= x && x <= x1 {
+	    ticks.push((x,y));
+	    if i > 0 {
+		if (ticks[i - 1].0 - x).abs() < min_spacing {
+		    eprintln!("i={} x={} y={} x'={} spacing={}",i,x,y,ticks[i-1].0,min_spacing);
+		    return None
+		}
 	    }
+	    i += 1;
 	}
 	y += dy;
-	i += 1;
     }
     let m = ticks.len();
     Some(ticks.iter().enumerate().map(|(i,&(x,y))| {
@@ -294,34 +297,20 @@ fn main() {
     let y0 = 0.0;
     let y1 = 1013.25;
     let x0 = -0.5;
-    let x1 = 3.0;
+    let x1 = 1.0;
 
     let x_map = LinearMap::new(0.0,p3.x,x0,x1);
     let y_map = LinearMap::new(0.0,p1.y,y0,y1);
-    let ticks_y = try_ticks(5,&y_map,
+    let tick_spacing = size/4.0;
+    let ticks_y = try_ticks(1,&y_map,
 			    |pos,y| if pos == Position::Last { format!("hPa {}",y) } else { format!("{}",y) },
-			    2.0e-3*size).unwrap();
+			    tick_spacing).unwrap();
     println!("Ticks Y: {:?}",ticks_y);
+    let ticks_x = try_ticks(0,&x_map,|_,x| format!("{:5.3}",x),tick_spacing).unwrap();
+    println!("Ticks X: {:?}",ticks_x);
 
     ruler(&font,size,ORIGIN,p1,true,false,&ticks_y).plot(&mut pl);
-	  // |y0,y1,dl| {
-	  //     let m = ((1.0/dl).floor() as usize).max(2);
-	  //     let mut ticks = Array2::zeros((m,2));
-	  //     if true {
-	  // 	  ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-	  // 	  ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
-	  //     } else {
-	  // 	  let lus : Array1<f64> = Array1::linspace(0.0,-4.0,m);
-	  // 	  // ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-	  // 	  // ticks.slice_mut(s![..,1]).assign(&Array1::linspace(y0,y1,m));
-	  // 	  for i in 0..m {
-	  // 	      ticks[[i,0]] = 1.0-lus[i].exp();
-	  // 	      ticks[[i,1]] = y0 + (y1-y0)*ticks[[i,0]];
-	  // 	  }
-	  // 	  ticks[[m-1,0]] = 1.0;
-	  // 	  ticks[[m-1,1]] = y1;
-	  //     }
-	  //     ticks
+    ruler(&font,size,p1,p2,false,true,&ticks_x).plot(&mut pl);
     // ruler(&font,x0,x1,p1,p2,size,false,true,
     // 	  |_,y| format!("{:.4}",y),
     // 	  |x0,x1,dl| {
