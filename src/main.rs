@@ -3,7 +3,7 @@ mod text;
 mod homography;
 
 use std::rc::Rc;
-use std::f64::consts::PI;
+use std::f64::consts::{E,PI};
 use beamtrace::{geometry::{point,rectangle,Point,Rectangle,ORIGIN},Color,Book,Page,Plot,Command};
 use text::{Text,Object,Content};
 use font::{Font,W,D,H};
@@ -127,6 +127,41 @@ impl Map for LinearMap {
     }
 }
 
+struct ExponentialMap {
+    x0:f64,
+    x1:f64,
+    y0:f64,
+    y1:f64
+}
+
+impl ExponentialMap {
+    fn new(x0:f64,x1:f64,y0:f64,y1:f64)->Self {
+	Self{ x0,x1,y0,y1 }
+    }
+    fn u(s:f64)->f64 {
+	(s.exp()-1.0)/(E-1.0)
+    }
+    fn v(t:f64)->f64 {
+	((E-1.0)*t+1.0).ln()
+    }
+}
+
+// g(t) : [0,1] -> [0,1]
+// t = (exp(s)-1)/(e-1)
+// log(t*(e-1)+1) = (exp(s)-1
+
+impl Map for ExponentialMap {
+    fn domain(&self)->(f64,f64) { (self.x0,self.x1) }
+    fn codomain(&self)->(f64,f64) { (self.y0,self.y1) }
+    fn direct(&self,x:f64)->f64 {
+	self.y0 + (self.y1 - self.y0)*Self::u((x - self.x0)/(self.x1 - self.x0))
+    }
+    fn inverse(&self,y:f64)->f64 {
+	self.x0 + (self.x1 - self.x0)*Self::v((y - self.y0)/(self.y1 - self.y0))
+    }
+}
+
+
 fn try_ticks<M,F> (d:isize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(f64,String)>>
 where M:Map,F:FnMut(Position,f64)->String {
     let (x0,x1) = map.domain();
@@ -143,7 +178,6 @@ where M:Map,F:FnMut(Position,f64)->String {
 	    ticks.push((x,y));
 	    if i > 0 {
 		if (ticks[i - 1].0 - x).abs() < min_spacing {
-		    eprintln!("i={} x={} y={} x'={} spacing={} dy={}",i,x,y,ticks[i-1].0,min_spacing,dy);
 		    return None
 		}
 	    }
@@ -298,10 +332,10 @@ fn main() {
     let y0 = 0.0;
     let y1 = 1013.25;
     let x0 = -0.5;
-    let x1 = 1.0;
+    let x1 = 1.5;
 
     let x_map = LinearMap::new(0.0,p3.x,x0,x1);
-    let y_map = LinearMap::new(0.0,p1.y,y0,y1);
+    let y_map = ExponentialMap::new(0.0,p1.y,y0,y1);
     let tick_spacing = size/4.0;
     let ticks_y = try_ticks(10,&y_map,
 			    |pos,y| if pos == Position::Last { format!("hPa {}",y) } else { format!("{}",y) },
