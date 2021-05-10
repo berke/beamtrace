@@ -131,7 +131,8 @@ fn try_ticks<M,F> (d:isize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(f64,
 where M:Map,F:FnMut(Position,f64)->String {
     let (x0,x1) = map.domain();
     let (y0,y1) = map.codomain();
-    let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor() - d as f64);
+    let p = 2;
+    let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor()) / d as f64;
     let mut ticks = Vec::new();
     let mut y = y0 - y0.rem_euclid(dy);
     //for i in 0..m {
@@ -142,7 +143,7 @@ where M:Map,F:FnMut(Position,f64)->String {
 	    ticks.push((x,y));
 	    if i > 0 {
 		if (ticks[i - 1].0 - x).abs() < min_spacing {
-		    eprintln!("i={} x={} y={} x'={} spacing={}",i,x,y,ticks[i-1].0,min_spacing);
+		    eprintln!("i={} x={} y={} x'={} spacing={} dy={}",i,x,y,ticks[i-1].0,min_spacing,dy);
 		    return None
 		}
 	    }
@@ -302,11 +303,11 @@ fn main() {
     let x_map = LinearMap::new(0.0,p3.x,x0,x1);
     let y_map = LinearMap::new(0.0,p1.y,y0,y1);
     let tick_spacing = size/4.0;
-    let ticks_y = try_ticks(1,&y_map,
+    let ticks_y = try_ticks(10,&y_map,
 			    |pos,y| if pos == Position::Last { format!("hPa {}",y) } else { format!("{}",y) },
 			    tick_spacing).unwrap();
     println!("Ticks Y: {:?}",ticks_y);
-    let ticks_x = try_ticks(0,&x_map,|_,x| format!("{:5.3}",x),tick_spacing).unwrap();
+    let ticks_x = try_ticks(5,&x_map,|_,x| format!("{:.1}",x),tick_spacing).unwrap();
     println!("Ticks X: {:?}",ticks_x);
 
     ruler(&font,size,ORIGIN,p1,true,false,&ticks_y).plot(&mut pl);
