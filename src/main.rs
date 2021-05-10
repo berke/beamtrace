@@ -206,21 +206,25 @@ fn ruler(font:&Font,size:f64,
 }
 
 fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,p2:Point,
-			    x0:f64,x1:f64,
-			    y0:f64,y1:f64,
+			    x_map:&Map,
+			    y_map:&Map,
 			    delta:f64,flip:bool,
 			    color:Color,mut f:F)->Object {
     let mut obj = Object::empty();
-    let du = (p1 - p0);
+    let du = (p1 - p0).normalize();
     let dv = if flip { -1.0 } else { 1.0 } * point(du.y,du.x);
     let dl = (p1 - p0).norm();
     let m = (dl / delta).ceil() as usize;
-    let xs = Array1::linspace(x0,x1,m);
+    let (u0,u1) = x_map.domain();
+    let (v0,v1) = y_map.domain();
+    let us = Array1::linspace(u0,u1,m);
     let mut line = Vec::new();
     for i in 0..m {
-	let x = xs[i];
+	let u = us[i];
+	let x = x_map.direct(u);
 	let y = f(x);
-	let p = p0 + (x-x0)/(x1-x0)*du + (y-y0)/(y1-y0)*dv;
+	let v = y_map.inverse(y);
+	let p = p0 + u*du + v*dv;
 	line.push(p);
     }
     obj.contents.push(Content::Draw(Command::Lines{ color,lines:vec![line] }));
@@ -292,8 +296,9 @@ fn main() {
     let x0 = -0.5;
     let x1 = 3.0;
 
-    let map_y = LinearMap::new(0.0,p1.y,y0,y1);
-    let ticks_y = try_ticks(5,&map_y,
+    let x_map = LinearMap::new(0.0,p3.x,x0,x1);
+    let y_map = LinearMap::new(0.0,p1.y,y0,y1);
+    let ticks_y = try_ticks(5,&y_map,
 			    |pos,y| if pos == Position::Last { format!("hPa {}",y) } else { format!("{}",y) },
 			    2.0e-3*size).unwrap();
     println!("Ticks Y: {:?}",ticks_y);
@@ -336,8 +341,8 @@ fn main() {
     let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
     let mut g = |f:&mut Fn(f64)->f64,color:Color| {
 	curve(ORIGIN,p1,p2,
-	      y0,y1,
-	      x0,x1,
+	      &y_map,
+	      &x_map,
 	      1.0,
 	      false,
 	      color,
@@ -351,21 +356,21 @@ fn main() {
     let origin = origin + point(size,0.0) + p3;
 
     pl.rectangle(0xfff,rectangle(origin,origin+p2));
-    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
-    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
-    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	curve(origin,origin+p1,origin+p2,
-	      y0,y1,
-	      x0,x1,
-	      1.0,
-	      false,
-	      color,
-	      f).plot(&mut pl)
-    };
-    g(&mut f1,0xf00);
-    g(&mut f2,0x0f0);
-    g(&mut f3,0x0ff);
+    // let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
+    // let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
+    // let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
+    // let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+    // 	curve(origin,origin+p1,origin+p2,
+    // 	      y0,y1,
+    // 	      x0,x1,
+    // 	      1.0,
+    // 	      false,
+    // 	      color,
+    // 	      f).plot(&mut pl)
+    // };
+    // g(&mut f1,0xf00);
+    // g(&mut f2,0x0f0);
+    // g(&mut f3,0x0ff);
     // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
     // 	  |_,y| format!("{:.4}",y),
     // 	  |x0,x1,dl| {
@@ -380,23 +385,23 @@ fn main() {
     let origin = origin + point(size,0.0) + p3;
 
     pl.rectangle(0xfff,rectangle(origin,origin + p2));
-    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
-    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
-    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
-    let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	curve(origin,origin + p1,origin + p2,
-	      y0,y1,
-	      x0,x1,
-	      1.0,
-	      false,
-	      color,
-	      f).plot(&mut pl)
-    };
-    g(&mut f1,0xf00);
-    g(&mut f2,0x0f0);
-    g(&mut f3,0x0ff);
-    g(&mut f4,0xff0);
+    // let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
+    // let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
+    // let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
+    // let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
+    // let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+    // 	curve(origin,origin + p1,origin + p2,
+    // 	      y0,y1,
+    // 	      x0,x1,
+    // 	      1.0,
+    // 	      false,
+    // 	      color,
+    // 	      f).plot(&mut pl)
+    // };
+    // g(&mut f1,0xf00);
+    // g(&mut f2,0x0f0);
+    // g(&mut f3,0x0ff);
+    // g(&mut f4,0xff0);
     // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
     // 	  |_,y| format!("{:.4}",y),
     // 	  |x0,x1,dl| {
