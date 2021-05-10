@@ -359,12 +359,14 @@ fn main() {
     // ruler(&font,0.0,101325.0,ORIGIN+dx,p1+dx,size).plot(&mut pl);
     // .plot(&mut pl);
 
-    pl.rectangle(0xfff,rectangle(ORIGIN,p2));
+    let origin = ORIGIN;
+    if x0*x1 < 0.0 { pl.line(0x888,origin+x_map.inverse(0.0)*point(1.0,0.0),origin+p1+x_map.inverse(0.0)*point(1.0,0.0)); }
+    pl.rectangle(0xfff,rectangle(origin,p2));
     let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp() + 0.05*(p/25.0).cos();
     let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp() + 0.10*(p/30.0).cos();
     let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
     let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-	curve(ORIGIN,p1,p2,
+	curve(origin,p1,p2,
 	      &y_map,
 	      &x_map,
 	      1.0,
@@ -378,64 +380,47 @@ fn main() {
     bottom_align(&text_lines(&font, size, 0xfff, &["T"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
     let origin = origin + point(size,0.0) + p3;
-
+    if x0*x1 < 0.0 { pl.line(0x888,origin+x_map.inverse(0.0)*point(1.0,0.0),origin+p1+x_map.inverse(0.0)*point(1.0,0.0)); }
     pl.rectangle(0xfff,rectangle(origin,origin+p2));
-    // let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
-    // let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
-    // let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
-    // let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-    // 	curve(origin,origin+p1,origin+p2,
-    // 	      y0,y1,
-    // 	      x0,x1,
-    // 	      1.0,
-    // 	      false,
-    // 	      color,
-    // 	      f).plot(&mut pl)
-    // };
-    // g(&mut f1,0xf00);
-    // g(&mut f2,0x0f0);
-    // g(&mut f3,0x0ff);
-    // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
-    // 	  |_,y| format!("{:.4}",y),
-    // 	  |x0,x1,dl| {
-    // 	      let m = ((1.0/dl).floor() as usize).max(2);
-    // 	      let mut ticks = Array2::zeros((m,2));
-    // 	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-    // 	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-    // 	      ticks
-    // 	  }).plot(&mut pl);
+    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
+    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
+    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
+    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	curve(origin,origin+p1,origin+p2,
+	      &y_map,
+	      &x_map,
+	      1.0,
+	      false,
+	      color,
+	      f).plot(&mut pl)
+    };
+    g(&mut f1,0xf00);
+    g(&mut f2,0x0f0);
+    g(&mut f3,0x0ff);
+    ruler(&font,size,origin+p1,origin+p2,false,true,&ticks_x).plot(&mut pl);
     bottom_align(&text_lines(&font, size, 0xfff, &["H_2O"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
     let origin = origin + point(size,0.0) + p3;
-
+    if x0*x1 < 0.0 { pl.line(0x888,origin+x_map.inverse(0.0)*point(1.0,0.0),origin+p1+x_map.inverse(0.0)*point(1.0,0.0)); }
     pl.rectangle(0xfff,rectangle(origin,origin + p2));
-    // let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
-    // let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
-    // let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
-    // let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
-    // let mut g = |f:&mut Fn(f64)->f64,color:Color| {
-    // 	curve(origin,origin + p1,origin + p2,
-    // 	      y0,y1,
-    // 	      x0,x1,
-    // 	      1.0,
-    // 	      false,
-    // 	      color,
-    // 	      f).plot(&mut pl)
-    // };
-    // g(&mut f1,0xf00);
-    // g(&mut f2,0x0f0);
-    // g(&mut f3,0x0ff);
-    // g(&mut f4,0xff0);
-    // ruler(&font,x0,x1,origin + p1,origin + p2,size,false,true,
-    // 	  |_,y| format!("{:.4}",y),
-    // 	  |x0,x1,dl| {
-    // 	      let m = ((1.0/dl).floor() as usize).max(2);
-    // 	      let mut ticks = Array2::zeros((m,2));
-    // 	      ticks.slice_mut(s![..,0]).assign(&Array1::linspace(0.0,1.0,m));
-    // 	      ticks.slice_mut(s![..,1]).assign(&Array1::linspace(x0,x1,m));
-    // 	      ticks
-    // 	  }).plot(&mut pl);
-
+    let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/50.0)).exp() + 0.15*(p/15.0).cos();
+    let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
+    let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
+    let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
+    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+	curve(origin,origin + p1,origin + p2,
+	      &y_map,
+	      &x_map,
+	      1.0,
+	      false,
+	      color,
+	      f).plot(&mut pl)
+    };
+    g(&mut f1,0xf00);
+    g(&mut f2,0x0f0);
+    g(&mut f3,0x0ff);
+    g(&mut f4,0xff0);
+    ruler(&font,size,origin+p1,origin+p2,false,true,&ticks_x).plot(&mut pl);
     bottom_align(&text_lines(&font, size, 0xfff, &["CH_4"]).rc()).transformed(&Homography::translation(origin)).plot(&mut pl);
 
     let subtitle =
