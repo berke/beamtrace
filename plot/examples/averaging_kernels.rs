@@ -1,9 +1,3 @@
-// mod font;
-// mod text;
-// mod homography;
-// mod maps;
-// mod plot;
-
 use beambook::{geometry::{point,rectangle,ORIGIN},Color,Book,Page,Plot};
 use beamplot::{
     plot::*,
