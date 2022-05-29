@@ -12,7 +12,7 @@ repository = "https://github.com/berke/beamplot"
 members = [".","book","plot"]
 
 [dependencies]
-beambook = { path = "book" }
+beambook = { path = "book", version = "0.1.0" }
 serde = { version = "1.0", features = ["derive"] }
 rmp-serde = { version = "^0.15" }
 ndarray = { version = "^0.14" }

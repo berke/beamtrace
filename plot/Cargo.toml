@@ -9,4 +9,4 @@ description = "Plotter"
 repository = "https://github.com/berke/beamplot"
 
 [dependencies]
-beambook = { path = "../book" }
+beambook = { path = "../book",version = "0.1.0" }
