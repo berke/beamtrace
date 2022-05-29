@@ -4,11 +4,11 @@ mod homography;
 
 use std::rc::Rc;
 use std::f64::consts::{E,PI};
-use beamtrace::{geometry::{point,rectangle,Point,Rectangle,ORIGIN},Color,Book,Page,Plot,Command};
+use beamtrace::{geometry::{point,rectangle,Point,ORIGIN},Color,Book,Page,Plot,Command};
 use text::{Text,Object,Content};
-use font::{Font,W,D,H};
+use font::{Font,D,H};
 use homography::Homography;
-use ndarray::{Array1,Array2,s};
+use ndarray::Array1;
 
 const DEGREE : f64 = PI/180.0;
 
@@ -244,8 +244,8 @@ fn ruler(font:&Font,size:f64,
 }
 
 fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,p2:Point,
-			    x_map:&Map,
-			    y_map:&Map,
+			    x_map:&dyn Map,
+			    y_map:&dyn Map,
 			    delta:f64,flip:bool,
 			    color:Color,mut f:F)->Object {
     let mut obj = Object::empty();
@@ -365,7 +365,7 @@ fn main() {
     let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/150.0)).exp() + 0.05*(p/25.0).cos();
     let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/150.0)).exp() + 0.10*(p/30.0).cos();
     let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/150.0)).exp() + 0.15*(p/35.0).cos();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+    let mut g = |f:&mut dyn Fn(f64)->f64,color:Color| {
 	curve(origin,p1,p2,
 	      &y_map,
 	      &x_map,
@@ -385,7 +385,7 @@ fn main() {
     let mut f1 = |p:f64| (-sq((p - 0.2*pressure0)/10.0)).exp() + 0.05*(p/25.0).cos();
     let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/10.0)).exp() + 0.10*(p/30.0).cos();
     let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/10.0)).exp() + 0.15*(p/35.0).cos();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+    let mut g = |f:&mut dyn Fn(f64)->f64,color:Color| {
 	curve(origin,origin+p1,origin+p2,
 	      &y_map,
 	      &x_map,
@@ -407,7 +407,7 @@ fn main() {
     let mut f2 = |p:f64| (-sq((p - 1.0*pressure0)/50.0)).exp() + 0.05*(p/20.0).cos();
     let mut f3 = |p:f64| (-sq((p - 1.5*pressure0)/50.0)).exp() + 0.10*(p/25.0).cos();
     let mut f4 = |p:f64| (-sq((p - 1.2*pressure0)/30.0)).exp() + 0.12*(p/50.0).cos();
-    let mut g = |f:&mut Fn(f64)->f64,color:Color| {
+    let mut g = |f:&mut dyn Fn(f64)->f64,color:Color| {
 	curve(origin,origin + p1,origin + p2,
 	      &y_map,
 	      &x_map,

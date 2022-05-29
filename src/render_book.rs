@@ -1,8 +1,8 @@
 mod bresenham;
 
 use std::error::Error;
-use ndarray::{Array2,Array3,ArrayViewMut2,ArrayViewMut3};
-use beamtrace::{geometry::{point,rectangle,Point,Rectangle,ORIGIN},Color,Book,Page,Plot,Command};
+use ndarray::Array3;
+use beamtrace::{Book,Command};
 
 fn rgb12_to_color(x:u16)->[u8;3] {
     [(((x >> 4) & 0xf0) | ((x >> 8) & 0x0f)) as u8,
@@ -11,8 +11,8 @@ fn rgb12_to_color(x:u16)->[u8;3] {
 }
 
 fn draw_disk(u:&mut Array3<u8>,
-	     mut i0:i32,
-	     mut j0:i32,
+	     i0:i32,
+	     j0:i32,
 	     r:i32,
 	     color:[u8;3]) {
     let (m,n,_) = u.dim();

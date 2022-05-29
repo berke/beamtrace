@@ -1,6 +1,6 @@
-use beamtrace::{point,rectangle,Point,Rectangle,Color,Book,Page,Plot,Command,geometry::ORIGIN};
+use beamtrace::{point,rectangle,Point,Rectangle,Color,Plot,Command,geometry::ORIGIN};
 use std::rc::Rc;
-use crate::font::{Font,W,D,H};
+use crate::font::{Font,W,H};
 use crate::homography::Homography;
 
 #[derive(Clone,Debug)]
