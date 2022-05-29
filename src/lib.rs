@@ -1,7 +1,5 @@
 pub mod geometry;
 
-use std::f64::{NEG_INFINITY,INFINITY};
-use std::ops::{Add,AddAssign,Sub,SubAssign,Mul};
 use std::path::Path;
 use std::error::Error;
 use std::fs::File;
@@ -52,6 +50,10 @@ impl Page {
 	self.plots.len()
     }
 
+    pub fn is_empty(&self)->bool {
+	self.plots.is_empty()
+    }
+
     pub fn plot(&mut self,pl:Plot) {
 	self.plots.push(pl);
     }
@@ -64,6 +66,12 @@ impl Page {
 	    let i = k.rem_euclid(m as isize) as usize;
 	    Some(&self.plots[i])
 	}
+    }
+}
+
+impl Default for Page {
+    fn default()->Self {
+	Self::new()
     }
 }
 
@@ -114,6 +122,12 @@ impl Plot {
     }
 }
 
+impl Default for Plot {
+    fn default()->Self {
+	Self::new()
+    }
+}
+
 impl Book {
     pub fn new()->Self {
 	Self{ pages:Vec::new() }
@@ -153,5 +167,11 @@ impl Book {
 
     pub fn page(&mut self,page:Page) {
 	self.pages.push(page);
+    }
+}
+
+impl Default for Book {
+    fn default()->Self {
+	Self::new()
     }
 }

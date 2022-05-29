@@ -1,9 +1,5 @@
 use std::f64::{NEG_INFINITY,INFINITY};
 use std::ops::{Add,AddAssign,Sub,SubAssign,Mul};
-use std::path::Path;
-use std::error::Error;
-use std::fs::File;
-use std::io::{Read,Write,BufWriter,BufReader};
 use serde::{Serialize,Deserialize};
 
 #[derive(Debug,Copy,Clone,Serialize,Deserialize)]
@@ -68,7 +64,7 @@ impl Rectangle {
     }
 
     pub fn bounding(pts:&[Point])->Rectangle {
-	pts.iter().fold(Self::all(),|r,&p| { let mut r = r.clone(); r.add_point(p); r })
+	pts.iter().fold(Self::all(),|mut r,&p| { r.add_point(p); r })
     }
 }
 
