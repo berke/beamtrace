@@ -6,7 +6,7 @@ authors = ["Berke DURAK <bd@exhrd.fr>"]
 license = "MIT OR APACHE-2.0"
 readme = "README.md"
 description = "Plotter"
-repository = "https://github.com/berke/beamplot"
+repository = "https://github.com/berke/beamtrace"
 
 [dependencies]
-beambook = { path = "../book",version = "0.1.0" }
+beambook = { path = "../book", version = "0.1.0" }
