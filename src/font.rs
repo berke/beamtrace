@@ -379,7 +379,7 @@ const FONT173 : &[(char,&[u8])] = &[
     // ('x',b"071312"), // prime 
     ('≤',b"025325227331"), // lessorequal 
     // ('x',b"352"), // slash 
-    ('∞',b"02622624724726626624524522666266307326305266"), // infinity 
+    ('∞',b"026226247247266266245245226066266307326305266"), // infinity 
     // ('x',b"131332312270265244224225050310"), // math function 
     ('♣',b"026247266245226066307326305266067250271310267067264"), // clubsuit 
     ('♢',b"026271326263226"), // diamondsuit 
@@ -396,7 +396,7 @@ const FONT173 : &[(char,&[u8])] = &[
     ('x',b"051252111312"), // two primes 
     ('≥',b"125225327231"), // greaterorequal 
     ('×',b"045310050305"), // times 
-    ('∝',b"02622624724726626624524522666266307066305"), // propto 
+    ('∝',b"026226247247266266245245226066266307066305"), // propto 
     ('∂',b"050271311305264244225226267306"), // partial 
     ('x',b"047270307266247"), // circle 
     ('÷',b"027327065266071272"), // divide 
@@ -480,7 +480,10 @@ fn decode(u:&[u8])->Vec<(bool,i8,i8)> {
     let m = u.len() / 3;
     let mut w = Vec::with_capacity(m);
     for v in u.chunks(3) {
-	let b = u8::from_str_radix(std::str::from_utf8(v).unwrap(),8).unwrap();
+	let b = u8::from_str_radix(std::str::from_utf8(v).unwrap(),8)
+	    .unwrap_or_else(|_| panic!("Bad octal string {:?} in {:?}",
+				       String::from_utf8_lossy(v),
+				       String::from_utf8_lossy(u)));
 	let pen = b >= 128;
 	let x = ((b >> 4) & 7) as i8;
 	let y = (b & 15) as i8;
