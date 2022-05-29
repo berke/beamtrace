@@ -17,6 +17,7 @@ serde = { version = "1.0", features = ["derive"] }
 rmp-serde = { version = "^0.15" }
 ndarray = { version = "^0.14" }
 ndarray-image = { version = "^0.3" }
+image = { version = "^0.23", features = ["png"] }
 
 [[bin]]
 name = "show_book"

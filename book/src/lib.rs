@@ -8,7 +8,12 @@ use serde::{Serialize,Deserialize};
 
 pub use crate::geometry::{point,rectangle,Point,Rectangle};
 
-pub type Color = u16;
+#[derive(Debug,Clone,Copy,Serialize,Deserialize)]
+pub struct Color {
+    pub r:u8,
+    pub g:u8,
+    pub b:u8
+}
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub enum Command {

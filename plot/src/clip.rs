@@ -1,4 +1,4 @@
-use beambook::{geometry::{point,rectangle,Point,Rectangle,ORIGIN},Color,Command};
+use beambook::geometry::{point,Point,Rectangle};
 
 /// Returns [true] if the segment [p0,p1] entirely fits into the rectangle.
 pub fn segment_fits(rect:&Rectangle,p0:Point,p1:Point)->bool {
@@ -131,7 +131,7 @@ fn test_clip() {
 	let (x0,x1,y0,y1) = (f(s),f(s),f(s),f(s));
 	let p0 = point(x0,y0);
 	let p1 = point(x1,y1);
-	for ncheck in 0..ntest {
+	for _icheck in 0..ntest {
 	    let p = sample_along_segment(p0,p1);
 	    let sc = segment_contains(p0,p1,p,tol);
 	    if !sc {
@@ -148,7 +148,7 @@ fn test_clip() {
 	match s {
 	    None => (),
 	    Some((q0,q1)) =>
-		for ncheck in 0..ntest {
+		for _icheck in 0..ntest {
 		    let q = sample_along_segment(q0,q1);
 		    let rc = r.contains(q);
 		    let sc = segment_contains(p0,p1,q,tol);
@@ -160,7 +160,7 @@ fn test_clip() {
 		}
 	}
 
-	for ncheck in 0..ntest {
+	for _icheck in 0..ntest {
 	    let p = sample_along_segment(p0,p1);
 	    let sc =
 		s.map(|(q0,q1)| segment_contains(q0,q1,p,tol))

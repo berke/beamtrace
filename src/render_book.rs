@@ -2,19 +2,13 @@ mod bresenham;
 
 use std::error::Error;
 use ndarray::Array3;
-use beambook::{Book,Command};
-
-fn rgb12_to_color(x:u16)->[u8;3] {
-    [(((x >> 4) & 0xf0) | ((x >> 8) & 0x0f)) as u8,
-     (( x       & 0xf0) | ((x >> 4) & 0x0f)) as u8,
-     (((x << 4) & 0xf0) | ( x       & 0x0f)) as u8]
-}
+use beambook::{Book,Command,Color};
 
 fn draw_disk(u:&mut Array3<u8>,
 	     i0:i32,
 	     j0:i32,
 	     r:i32,
-	     color:[u8;3]) {
+	     color:&Color) {
     let (m,n,_) = u.dim();
     for di in -r..=r {
 	let i = i0 + di;
@@ -22,9 +16,9 @@ fn draw_disk(u:&mut Array3<u8>,
 	    for dj in -r..=r {
 		let j = j0 + dj;
 		if 0 <= j && j < n as i32 && di*di + dj*dj < r*r {
-		    u[[i as usize,j as usize,0]] = color[0];
-		    u[[i as usize,j as usize,1]] = color[1];
-		    u[[i as usize,j as usize,2]] = color[2];
+		    u[[i as usize,j as usize,0]] = color.r;
+		    u[[i as usize,j as usize,1]] = color.g;
+		    u[[i as usize,j as usize,2]] = color.b;
 		}
 	    }
 	}
@@ -37,18 +31,19 @@ fn main()->Result<(),Box<dyn Error>> {
     let bk = Book::load_from_file(in_fn).unwrap();
 
     let ss = 16;
-    let ny = 1024;
-    let nx = 1920;
+    let ny = 512;
+    let nx = 1024;
 
-    let invert = 0xfff;
+    // let invert = 0x000;
 
-    let mut bm : Array3<u8> = Array3::from_elem((ny*ss,nx*ss,3),(invert & 0xff) as u8);
+    let mut bm : Array3<u8> = Array3::from_elem((ny*ss,nx*ss,3),0);
 
     let size = 11;
     let margin = 16.0;
 
     for (ipage,page) in bk.pages.iter().enumerate() {
 	for (iplot,plot) in page.plots.iter().enumerate() {
+	    bm.fill(0);
 	    let mut rect = plot.bounding();
 	    println!("Page bounds: {:?}",rect);
 	    let scale = (nx as f64 / rect.dx()).min(ny as f64 / rect.dy());
@@ -60,13 +55,13 @@ fn main()->Result<(),Box<dyn Error>> {
 	    let scale = (nx as f64 / rect.dx()).min(ny as f64 / rect.dy());
 	    let scale = ss as f64 * scale;
 	    for cmd in plot.commands.iter() {
-		match *cmd {
+		match &cmd {
 		    Command::Points{ color,ref points } => {
 			for &p in points.iter() {
 			    let p = p - rect.a;
 			    let ix = (p.x * scale).floor() as i32;
 			    let iy = (p.y * scale).floor() as i32;
-			    draw_disk(&mut bm,ix,iy,size,rgb12_to_color(color ^ invert));
+			    draw_disk(&mut bm,ix,iy,size,&color);
 			}
 		    },
 		    Command::Lines{ color,ref lines } => {
@@ -78,9 +73,8 @@ fn main()->Result<(),Box<dyn Error>> {
 				let iy1 = (p1.y * scale).floor() as i32;
 				let ix2 = (p2.x * scale).floor() as i32;
 				let iy2 = (p2.y * scale).floor() as i32;
-				let color = rgb12_to_color(color ^ invert);
 				for (ix,iy) in bresenham::Bresenham::new(ix1,iy1,ix2,iy2) {
-				    draw_disk(&mut bm,iy,ix,size,color);
+				    draw_disk(&mut bm,iy,ix,size,&color);
 				}
 			    }
 			}

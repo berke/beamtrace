@@ -48,6 +48,8 @@ pub fn try_ticks<M,F> (d:isize,map:&M,mut label:F,min_spacing:f64)->Option<Vec<(
 where M:Map,F:FnMut(Position,f64)->String {
     let (x0,x1) = map.domain();
     let (y0,y1) = map.codomain();
+    let (x0,x1) = (x0.min(x1),x0.max(x1));
+    let (y0,y1) = (y0.min(y1),y0.max(y1));
     let _p = 2;
     let dy = 10.0_f64.powf((y1 - y0).abs().log10().floor()) / d as f64;
     let mut ticks = Vec::new();
@@ -79,10 +81,12 @@ where M:Map,F:FnMut(Position,f64)->String {
     }).collect())
 }
 
-pub fn ruler(font:&Font,size:f64,
-	 p0:Point,p1:Point,
-	 left:bool,rot:bool,
-	 ticks:&[(f64,String)])->Object {
+pub fn ruler(font:&Font,
+	     pen:Color,
+	     size:f64,
+	     p0:Point,p1:Point,
+	     left:bool,rot:bool,
+	     ticks:&[(f64,String)])->Object {
     //       w   g
     // y0 +------ 1
     //    |
@@ -103,15 +107,15 @@ pub fn ruler(font:&Font,size:f64,
     let n = ticks.len();
 
     let mut current = Object::empty();
-    current.contents.push(Content::Draw(Command::line(0xfff,p0,p1)));
+    current.contents.push(Content::Draw(Command::line(pen,p0,p1)));
     for i in 0..n {
 	let &(v,ref txt) = &ticks[i];
 	let p = p0 + v*dv;
 	let pa = p + 2.0*size*du;
 	let pb = pa + 0.5*size*du - (1.0-D/H)*size*dv;
-	current.contents.push(Content::Draw(Command::line(0xfff,p,pa)));
+	current.contents.push(Content::Draw(Command::line(pen,p,pa)));
 	let obj = text::text(&font,
-			     0xfff,
+			     pen,
 			     ORIGIN,
 			     size,
 			     &Text::parse(&txt).unwrap());
@@ -123,14 +127,31 @@ pub fn ruler(font:&Font,size:f64,
     current
 }
 
-pub fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,_p2:Point,
-			    x_map:&dyn Map,
-			    y_map:&dyn Map,
-			    delta:f64,flip:bool,
-			    color:Color,mut f:F)->Object {
+// pub struct Axis<T:Map> {
+//     pub x_map:T,
+//     pub y_map:T,
+//     pub hom:Homography
+// }
+
+// impl<T:Map> Axis<T> {
+//     pub fn new(x_map:T,y_map:T,hom:Homography)->Self {
+// 	Self{ x_map,y_map,hom }
+//     }
+
+//     pub fn direct(&self,x:f64,y:f64)->Point {
+// 	self.hom.apply(point(self.x_map.direct(x),self.y_map.direct(y)))
+//     }
+// }
+
+// 
+pub fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,p2:Point,
+				x_map:&dyn Map,
+				y_map:&dyn Map,
+				delta:f64,flip:bool,
+				color:Color,mut f:F)->Object {
     let mut obj = Object::empty();
     let du = (p1 - p0).normalize();
-    let dv = if flip { -1.0 } else { 1.0 } * point(du.y,du.x);
+    let dv = (p2 - p0).normalize(); // if flip { -1.0 } else { 1.0 } * point(du.y,du.x);
     let dl = (p1 - p0).norm();
     let m = (dl / delta).ceil() as usize;
     let (u0,u1) = x_map.domain();
