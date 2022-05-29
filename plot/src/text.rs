@@ -112,12 +112,10 @@ pub fn glyph(font:&Font,color:Color,mut p0:Point,s0:f64,c:char)->Rc<Object> {
 		    line.push(p);
 		}
 		line.push(pp);
-	    } else {
-		if line.len() > 0 {
-		    let mut new_line = Vec::new();
-		    new_line.append(&mut line);
-		    lines.push(new_line);
-		}
+	    } else if line.len() > 0 {
+		let mut new_line = Vec::new();
+		new_line.append(&mut line);
+		lines.push(new_line);
 	    }
 	    p = pp;
 	}

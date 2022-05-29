@@ -58,10 +58,8 @@ where M:Map,F:FnMut(Position,f64)->String {
 	let x = map.inverse(y);
 	if x0 <= x && x <= x1 {
 	    ticks.push((x,y));
-	    if i > 0 {
-		if (ticks[i - 1].0 - x).abs() < min_spacing {
-		    return None
-		}
+	    if i > 0 && (ticks[i - 1].0 - x).abs() < min_spacing {
+		return None
 	    }
 	    i += 1;
 	}

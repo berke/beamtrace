@@ -21,12 +21,10 @@ fn draw_disk(u:&mut Array3<u8>,
 	if 0 <= i && i < m as i32 {
 	    for dj in -r..=r {
 		let j = j0 + dj;
-		if 0 <= j && j < n as i32 {
-		    if di*di + dj*dj < r*r {
-			u[[i as usize,j as usize,0]] = color[0];
-			u[[i as usize,j as usize,1]] = color[1];
-			u[[i as usize,j as usize,2]] = color[2];
-		    }
+		if 0 <= j && j < n as i32 && di*di + dj*dj < r*r {
+		    u[[i as usize,j as usize,0]] = color[0];
+		    u[[i as usize,j as usize,1]] = color[1];
+		    u[[i as usize,j as usize,2]] = color[2];
 		}
 	    }
 	}
@@ -62,8 +60,8 @@ fn main()->Result<(),Box<dyn Error>> {
 	    let scale = (nx as f64 / rect.dx()).min(ny as f64 / rect.dy());
 	    let scale = ss as f64 * scale;
 	    for cmd in plot.commands.iter() {
-		match cmd {
-		    &Command::Points{ color,ref points } => {
+		match *cmd {
+		    Command::Points{ color,ref points } => {
 			for &p in points.iter() {
 			    let p = p - rect.a;
 			    let ix = (p.x * scale).floor() as i32;
@@ -71,7 +69,7 @@ fn main()->Result<(),Box<dyn Error>> {
 			    draw_disk(&mut bm,ix,iy,size,rgb12_to_color(color ^ invert));
 			}
 		    },
-		    &Command::Lines{ color,ref lines } => {
+		    Command::Lines{ color,ref lines } => {
 			for line in lines.iter() {
 			    for ps in line.windows(2) {
 				let p1 = ps[0] - rect.a;

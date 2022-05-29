@@ -51,27 +51,21 @@ impl Bresenham {
 		} else {
 		    f(-x2,y2,-x1,y1,-1,1,false)
 		}
+	    } else if x1 > x2 {
+		f(-x1,y1,-x2,y2,-1,1,false)
 	    } else {
-		if x1 > x2 {
-		    f(-x1,y1,-x2,y2,-1,1,false)
-		} else {
-		    f(x1,y1,x2,y2,1,1,false)
-		}
+		f(x1,y1,x2,y2,1,1,false)
 	    }
+	} else if x1 > x2 {
+	    if y1 > y2 {
+		f(y2,x2,y1,x1,1,1,true)
+	    } else {
+		f(-y2,x2,-y1,x1,-1,1,true)
+	    }
+	} else if y1 > y2 {
+	    f(-y1,x1,-y2,x2,-1,1,true)
 	} else {
-	    if x1 > x2 {
-		if y1 > y2 {
-		    f(y2,x2,y1,x1,1,1,true)
-		} else {
-		    f(-y2,x2,-y1,x1,-1,1,true)
-		}
-	    } else {
-		if y1 > y2 {
-		    f(-y1,x1,-y2,x2,-1,1,true)
-		} else {
-		    f(y1,x1,y2,x2,1,1,true)
-		}
-	    }
+	    f(y1,x1,y2,x2,1,1,true)
 	}
     }
 }
