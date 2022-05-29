@@ -1,7 +1,6 @@
-use serde::{Serialize,Deserialize};
 use beambook::geometry::{point,Point};
 
-#[derive(Copy,Clone,Debug,Serialize,Deserialize)]
+#[derive(Copy,Clone,Debug)]
 pub struct Homography {
     coefs:[[f64;3];3]
 }
