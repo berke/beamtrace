@@ -10,5 +10,3 @@ repository = "https://github.com/berke/beamplot"
 
 [dependencies]
 beambook = { path = "../book" }
-ndarray = { version = "^0.14" }
-ndarray-image = { version = "^0.3" }

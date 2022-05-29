@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use std::f64::consts::PI;
 use beambook::{geometry::{point,rectangle,Point,ORIGIN},Color,Command};
-use ndarray::Array1;
 use crate::{
     text::{self,Text,Object,Content},
     font::{Font,D,H},
@@ -135,10 +134,9 @@ pub fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,_p2:Point,
     let m = (dl / delta).ceil() as usize;
     let (u0,u1) = x_map.domain();
     // let (v0,v1) = y_map.domain();
-    let us = Array1::linspace(u0,u1,m);
     let mut line = Vec::new();
     for i in 0..m {
-	let u = us[i];
+	let u = u0 + i as f64 * (u1 - u0) / (m - 1) as f64;
 	let x = x_map.direct(u);
 	let y = f(x);
 	let v = y_map.inverse(y);
