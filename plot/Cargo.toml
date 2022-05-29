@@ -1,6 +1,6 @@
 [package]
 name = "beamplot"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Berke DURAK <bd@exhrd.fr>"]
 license = "Apache-2.0 OR MIT"
@@ -10,3 +10,6 @@ repository = "https://github.com/berke/beamtrace"
 
 [dependencies]
 beambook = { path = "../book", version = "0.1.0" }
+
+[dev-dependencies]
+fastrand = { version = "1.7.0" }

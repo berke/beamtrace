@@ -1,5 +1,5 @@
 use std::f64::{NEG_INFINITY,INFINITY};
-use std::ops::{Add,AddAssign,Sub,SubAssign,Mul};
+use std::ops::{Add,AddAssign,Sub,SubAssign,Mul,Div};
 use serde::{Serialize,Deserialize};
 
 #[derive(Debug,Copy,Clone,Serialize,Deserialize)]
@@ -39,6 +39,11 @@ impl Rectangle {
     pub fn add_rectangle(&mut self,r:Rectangle) {
 	self.add_point(r.a);
 	self.add_point(r.b);
+    }
+
+    pub fn contains(&self,p:Point)->bool {
+	self.a.x <= p.x && p.x <= self.b.x &&
+	    self.a.y <= p.y && p.y <= self.b.y
     }
 
     pub fn dx(&self)->f64 {
@@ -93,9 +98,22 @@ impl Point {
 	self.x.hypot(self.y)
     }
 
+    pub fn dot(self,other:Self)->f64 {
+	self.x*other.x + self.y*other.y
+    }
+
+    pub fn ortho(self)->Self {
+	Self{ x:self.y,y:-self.x }
+    }
+
     pub fn normalize(self)->Self {
 	let n = self.norm();
 	point(self.x/n,self.y/n)
+    }
+
+    pub fn equivalent(&self,other:Point)->bool {
+	(self.x - other.x).abs() <= 0.0 &&
+	(self.y - other.y).abs() <= 0.0
     }
 }
 
@@ -134,6 +152,14 @@ impl Mul<Point> for f64 {
 
     fn mul(self,other:Point)->Point {
 	point(self * other.x,self * other.y)
+    }
+}
+
+impl Div<f64> for Point {
+    type Output = Point;
+
+    fn div(self,other:f64)->Point {
+	point(self.x/other,self.y/other)
     }
 }
 

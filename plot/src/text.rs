@@ -255,7 +255,7 @@ fn parse_inner<'a,'b>(u:&'a str,mut w:&'b [Symbol])->Result<(Text,&'b [Symbol]),
 
 #[test]
 pub fn test_parser() {
-    let u = "x^{e^{2πft + j(x^2+y^2) + x^2 + αy}";
+    let u = "x^{e^{2πft + j(x^2+y^2) + x^2 + αy}}";
     let v = Text::parse(u).unwrap();
     println!("{} -> {:#?}",u,v);
 }

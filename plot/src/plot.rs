@@ -5,7 +5,8 @@ use crate::{
     text::{self,Text,Object,Content},
     font::{Font,D,H},
     homography::Homography,
-    maps::Map
+    maps::Map,
+    clip
 };
 
 const DEGREE : f64 = PI/180.0;
@@ -133,7 +134,7 @@ pub fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,_p2:Point,
     let dl = (p1 - p0).norm();
     let m = (dl / delta).ceil() as usize;
     let (u0,u1) = x_map.domain();
-    // let (v0,v1) = y_map.domain();
+    let (v0,v1) = y_map.domain();
     let mut line = Vec::new();
     for i in 0..m {
 	let u = u0 + i as f64 * (u1 - u0) / (m - 1) as f64;
@@ -143,7 +144,9 @@ pub fn curve<F:FnMut(f64)->f64>(p0:Point,p1:Point,_p2:Point,
 	let p = p0 + u*du + v*dv;
 	line.push(p);
     }
-    obj.contents.push(Content::Draw(Command::Lines{ color,lines:vec![line] }));
+    let r = rectangle(point(u0,v0),point(u1,v1));
+    let lines = clip::clip_line(&r,&line);
+    obj.contents.push(Content::Draw(Command::Lines{ color,lines }));
     obj
 }
 
