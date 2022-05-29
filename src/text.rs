@@ -103,7 +103,7 @@ pub fn glyph(font:&Font,color:Color,mut p0:Point,s0:f64,c:char)->Rc<Object> {
     let mut line = Vec::new();
 
     if let Some(w) = font.get(c) {
-	let m = w.len();
+	// let m = w.len();
 	let mut p = p0;
 	for &(pen,jj,ii) in w.iter() {
 	    let pp = pp0 + (s*jj as f64,-s*ii as f64);
@@ -130,7 +130,7 @@ pub fn glyph(font:&Font,color:Color,mut p0:Point,s0:f64,c:char)->Rc<Object> {
     Rc::new(Object{ area,contents:vec![Content::Draw(Command::Lines{ color,lines })] })
 }
 
-pub fn text(font:&Font,color:Color,mut p0:Point,s:f64,t:&Text)->Rc<Object> {
+pub fn text(font:&Font,color:Color,p0:Point,s:f64,t:&Text)->Rc<Object> {
     let mut r0 = rectangle(p0,p0);
     let mut contents : Vec<Content> = Vec::new();
     match t {
@@ -189,8 +189,6 @@ macro_rules! error {
     }
 }
 
-use std::str::Chars;
-
 const EOF : char = '\x00';
 
 struct Symbol {
@@ -202,7 +200,7 @@ fn cons(t1:Text,t2:Text)->Text {
     Text::Seq(vec![t1,t2])
 }
 
-fn parse_one<'a,'b>(u:&str,mut w:&'b [Symbol])->Result<(Text,&'b [Symbol]),ParseError> {
+fn parse_one<'a,'b>(u:&str,w:&'b [Symbol])->Result<(Text,&'b [Symbol]),ParseError> {
     match w[0].c {
 	EOF => error!("Unexpected EOF"),
 	'{' => {
@@ -214,7 +212,7 @@ fn parse_one<'a,'b>(u:&str,mut w:&'b [Symbol])->Result<(Text,&'b [Symbol]),Parse
 	},
 	'^' => error!("Bad superscript"),
 	'_' => error!("Bad subscript"),
-	c => Ok((Text::Char(w[0].c),&w[1..]))
+	c => Ok((Text::Char(c),&w[1..]))
     }
 }
 
@@ -226,7 +224,7 @@ fn parse_one<'a,'b>(u:&str,mut w:&'b [Symbol])->Result<(Text,&'b [Symbol]),Parse
 //
 // L ::= Y*
 
-fn parse_two<'a,'b>(u:&'a str,mut w:&'b [Symbol])->Result<(Text,&'b [Symbol]),ParseError> {
+fn parse_two<'a,'b>(u:&'a str,w:&'b [Symbol])->Result<(Text,&'b [Symbol]),ParseError> {
     let (t1,w) = parse_one(u,w)?;
     match w[0].c {
 	'^' => {
