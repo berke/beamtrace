@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::f64::consts::PI;
-use beamtrace::{geometry::{point,rectangle,Point,ORIGIN},Color,Command};
+use beambook::{geometry::{point,rectangle,Point,ORIGIN},Color,Command};
 use ndarray::Array1;
 use crate::{
     text::{self,Text,Object,Content},

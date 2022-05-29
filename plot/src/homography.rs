@@ -1,5 +1,5 @@
 use serde::{Serialize,Deserialize};
-use beamtrace::geometry::{point,Point};
+use beambook::geometry::{point,Point};
 
 #[derive(Copy,Clone,Debug,Serialize,Deserialize)]
 pub struct Homography {

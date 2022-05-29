@@ -1,5 +1,5 @@
-use beamtrace::{point,rectangle,Point,Rectangle,Color,Plot,Command,geometry::ORIGIN};
 use std::rc::Rc;
+use beambook::{point,rectangle,Point,Rectangle,Color,Plot,Command,geometry::ORIGIN};
 use crate::font::{Font,W,H};
 use crate::homography::Homography;
 

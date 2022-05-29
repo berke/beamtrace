@@ -1,14 +1,16 @@
-mod font;
-mod text;
-mod homography;
-mod maps;
-mod plot;
+// mod font;
+// mod text;
+// mod homography;
+// mod maps;
+// mod plot;
 
-use beamtrace::{geometry::{point,rectangle,ORIGIN},Color,Book,Page,Plot};
-use font::Font;
-use homography::Homography;
-use maps::{Map,LinearMap,ExponentialMap};
-use plot::*;
+use beambook::{geometry::{point,rectangle,ORIGIN},Color,Book,Page,Plot};
+use beamplot::{
+    plot::*,
+    font::Font,
+    homography::Homography,
+    maps::{Map,LinearMap,ExponentialMap}
+};
 
 fn main() {
     let font = Font::new();

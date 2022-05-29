@@ -2,7 +2,7 @@ mod bresenham;
 
 use std::error::Error;
 use ndarray::Array3;
-use beamtrace::{Book,Command};
+use beambook::{Book,Command};
 
 fn rgb12_to_color(x:u16)->[u8;3] {
     [(((x >> 4) & 0xf0) | ((x >> 8) & 0x0f)) as u8,
